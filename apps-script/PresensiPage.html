@@ -1,0 +1,500 @@
+<!-- ====================================================================
+     PAGE 6: JADWAL GURU HARI INI (data-page="jadwal-guru")
+     Daftar jadwal mengajar dan status pengisian presensi kelas
+     ==================================================================== -->
+<section class="page" id="page-jadwal-guru" data-page="jadwal-guru" hidden>
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Jadwal Mengajar</h2>
+      <p class="page-subtitle">Daftar jadwal mengajar dan status pengisian presensi kelas Anda</p>
+    </div>
+    <div style="display: flex; align-items: center; gap: var(--space-2);">
+      <label class="form-label" for="jadwal-date-picker" style="margin-bottom: 0; font-weight: 600;">Tanggal:</label>
+      <input type="date" id="jadwal-date-picker" class="form-control" style="width: auto; min-height: 40px;"
+        onchange="onJadwalDateChange(this.value)">
+    </div>
+  </div>
+
+  <div class="alert alert-info" style="margin-bottom: var(--space-4); display: flex; align-items: flex-start; gap: var(--space-3);">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="16" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12.01" y2="8" />
+    </svg>
+    <div>
+      <strong>Ketentuan Presensi:</strong> Presensi hanya dapat diisi pada semester aktif. Tanggal masa depan
+      tidak diizinkan. Jika presensi tanggal lalu belum diisi, Anda tetap dapat mengisinya.
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div id="jadwal-guru-loading" style="display: none; text-align: center; padding: var(--space-8);">
+    <div class="loading-spinner" style="margin: 0 auto var(--space-3);"></div>
+    <div class="text-muted text-sm">Memuat jadwal mengajar...</div>
+  </div>
+
+  <!-- Container Cards Jadwal -->
+  <div class="grid grid-cols-3" id="jadwal-cards-container">
+    <!-- Diisi secara dinamis oleh renderJadwalCards() -->
+  </div>
+</section>
+
+<!-- ====================================================================
+     PAGE 7: FORM PRESENSI (data-page="form-presensi")
+     Form pengambilan & pengeditan presensi siswa per jadwal & tanggal
+     ==================================================================== -->
+<section class="page" id="page-form-presensi" data-page="form-presensi" hidden>
+  <div class="page-header">
+    <div>
+      <div style="display: flex; align-items: center; gap: var(--space-2); margin-bottom: 4px; flex-wrap: wrap;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="navigateTo('jadwal-guru')">&larr; Kembali</button>
+        <span class="badge badge-izin" id="form-badge-mapel-kelas">Mapel &bull; Kelas</span>
+        <span class="badge" id="form-badge-mode" style="display: none;">Mode Edit</span>
+      </div>
+      <h2 class="page-title" id="form-presensi-title">Form Presensi Siswa</h2>
+      <p class="page-subtitle" id="form-presensi-subtitle">Memuat data jadwal...</p>
+    </div>
+    <div style="display: flex; gap: var(--space-2);">
+      <button type="button" class="btn btn-outline" onclick="markAllHadir()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+        Tandai Semua Hadir
+      </button>
+    </div>
+  </div>
+
+  <!-- Counter Ringkasan Realtime -->
+  <div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-4); flex-wrap: wrap;">
+    <div style="flex: 1; min-width: 70px; background: var(--bg-hadir); border: 1px solid var(--border-hadir); border-radius: var(--radius-md); padding: 8px 12px; text-align: center;">
+      <div style="font-size: var(--font-xs); color: var(--color-hadir); font-weight: 700;">Hadir</div>
+      <div style="font-size: var(--font-lg); font-weight: 800; color: var(--color-hadir);" id="counter-hadir">0</div>
+    </div>
+    <div style="flex: 1; min-width: 70px; background: var(--bg-izin); border: 1px solid var(--border-izin); border-radius: var(--radius-md); padding: 8px 12px; text-align: center;">
+      <div style="font-size: var(--font-xs); color: var(--color-izin); font-weight: 700;">Izin</div>
+      <div style="font-size: var(--font-lg); font-weight: 800; color: var(--color-izin);" id="counter-izin">0</div>
+    </div>
+    <div style="flex: 1; min-width: 70px; background: var(--bg-sakit); border: 1px solid var(--border-sakit); border-radius: var(--radius-md); padding: 8px 12px; text-align: center;">
+      <div style="font-size: var(--font-xs); color: var(--color-sakit); font-weight: 700;">Sakit</div>
+      <div style="font-size: var(--font-lg); font-weight: 800; color: var(--color-sakit);" id="counter-sakit">0</div>
+    </div>
+    <div style="flex: 1; min-width: 70px; background: var(--bg-alpa); border: 1px solid var(--border-alpa); border-radius: var(--radius-md); padding: 8px 12px; text-align: center;">
+      <div style="font-size: var(--font-xs); color: var(--color-alpa); font-weight: 700;">Alpa</div>
+      <div style="font-size: var(--font-lg); font-weight: 800; color: var(--color-alpa);" id="counter-alpa">0</div>
+    </div>
+  </div>
+
+  <!-- Loading State Form -->
+  <div id="form-presensi-loading" style="display: none; text-align: center; padding: var(--space-8);">
+    <div class="loading-spinner" style="margin: 0 auto var(--space-3);"></div>
+    <div class="text-muted text-sm">Memuat daftar siswa...</div>
+  </div>
+
+  <!-- Form Presensi Siswa -->
+  <form id="form-presensi-siswa" onsubmit="handlePresensiSubmit(event)" style="display: none;">
+    <div class="attendance-grid" id="attendance-list-container">
+      <!-- Diisi secara dinamis oleh renderFormPresensi() -->
+    </div>
+
+    <!-- Sticky Action Footer -->
+    <div style="position: sticky; bottom: 0; background: var(--surface); padding: var(--space-4); border-top: 1px solid var(--surface-border); border-radius: var(--radius-lg); margin-top: var(--space-4); display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow-lg); z-index: 10; flex-wrap: wrap; gap: var(--space-3);">
+      <span class="text-sm text-muted" id="presensi-last-modified-info">Perubahan terakhir dicatat otomatis oleh server.</span>
+      <button type="submit" id="btn-save-presensi" class="btn btn-success" style="min-width: 180px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+          <polyline points="17 21 17 13 7 13 7 21" />
+          <polyline points="7 3 7 8 15 8" />
+        </svg>
+        <span>Simpan Presensi</span>
+      </button>
+    </div>
+  </form>
+</section>
+
+<script>
+/**
+ * Logika Klien Halaman Jadwal & Presensi Guru (T06)
+ */
+let currentPresensiFormData = null;
+let selectedJadwalDate = null;
+
+/**
+ * Format string tanggal lokal YYYY-MM-DD
+ */
+function getClientTodayYmd() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Inisialisasi halaman Jadwal Guru
+ */
+function initJadwalGuruPage() {
+  const datePicker = document.getElementById('jadwal-date-picker');
+  const today = getClientTodayYmd();
+  if (datePicker) {
+    datePicker.max = today;
+    if (!selectedJadwalDate) {
+      selectedJadwalDate = today;
+    }
+    datePicker.value = selectedJadwalDate;
+  }
+  loadJadwalGuru(selectedJadwalDate || today);
+}
+
+/**
+ * Handler perubahan tanggal pada date picker
+ */
+function onJadwalDateChange(val) {
+  const today = getClientTodayYmd();
+  if (!val) return;
+  if (val > today) {
+    showToast('Tanggal masa depan tidak diizinkan', 'warning');
+    const picker = document.getElementById('jadwal-date-picker');
+    if (picker) picker.value = today;
+    selectedJadwalDate = today;
+    loadJadwalGuru(today);
+    return;
+  }
+  selectedJadwalDate = val;
+  loadJadwalGuru(val);
+}
+
+/**
+ * Memuat jadwal guru dari server
+ */
+function loadJadwalGuru(tanggal) {
+  const token = getStoredToken();
+  if (!token) {
+    showToast('Sesi tidak valid, silakan login kembali', 'danger');
+    return;
+  }
+
+  const container = document.getElementById('jadwal-cards-container');
+  const loader = document.getElementById('jadwal-guru-loading');
+  if (container) container.innerHTML = '';
+  if (loader) loader.style.display = 'block';
+
+  if (typeof google === 'undefined' || !google.script || !google.script.run) {
+    if (loader) loader.style.display = 'none';
+    if (container) {
+      container.innerHTML = '<div class="card" style="padding: var(--space-6); text-align: center; grid-column: 1 / -1;"><p class="text-muted">Google Apps Script runtime tidak terdeteksi (uji di Apps Script Editor).</p></div>';
+    }
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler(function (res) {
+      if (loader) loader.style.display = 'none';
+      renderJadwalCards(res);
+    })
+    .withFailureHandler(function (err) {
+      if (loader) loader.style.display = 'none';
+      showToast('Gagal memuat jadwal: ' + (err.message || 'kesalahan server'), 'danger');
+      if (container) {
+        container.innerHTML = `<div class="card" style="padding: var(--space-6); text-align: center; grid-column: 1 / -1;"><p class="text-danger">${escapeHtml(err.message || 'Gagal memuat jadwal')}</p></div>`;
+      }
+    })
+    .getJadwalGuru(token, tanggal);
+}
+
+/**
+ * Render kartu jadwal
+ */
+function renderJadwalCards(data) {
+  const container = document.getElementById('jadwal-cards-container');
+  if (!container) return;
+
+  const jadwalList = data.jadwal || [];
+  if (jadwalList.length === 0) {
+    container.innerHTML = `
+      <div class="card" style="padding: var(--space-8); text-align: center; grid-column: 1 / -1;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: 0 auto var(--space-3); color: var(--text-muted);">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+        <h3 style="font-size: var(--font-base); font-weight: 700; margin-bottom: 4px;">Tidak Ada Jadwal Mengajar</h3>
+        <p class="text-muted text-sm">Tidak ada jadwal pelajaran untuk hari ${escapeHtml(data.hari)} (${escapeHtml(data.tanggal)}) pada semester aktif.</p>
+      </div>
+    `;
+    return;
+  }
+
+  let html = '';
+  jadwalList.forEach(function (j) {
+    const isFilled = j.status_presensi === 'Sudah diisi';
+    const badgeClass = isFilled ? 'badge-sudah' : 'badge-belum';
+    const topBorderColor = isFilled ? 'var(--color-hadir)' : 'var(--primary)';
+    const btnClass = isFilled ? 'btn-secondary' : 'btn-primary';
+    const btnText = isFilled ? 'Edit Presensi' : 'Isi Presensi Sekarang';
+    const btnIcon = isFilled
+      ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>'
+      : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>';
+
+    html += `
+      <div class="card" style="border-top: 4px solid ${topBorderColor};">
+        <div class="card-body">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3);">
+            <span class="badge ${badgeClass}"><span class="badge-dot"></span> ${escapeHtml(j.status_presensi)}</span>
+            <span style="font-weight: 700; color: var(--text-muted); font-size: var(--font-sm);">${escapeHtml(j.jam_mulai)} - ${escapeHtml(j.jam_selesai)}</span>
+          </div>
+          <h3 style="font-size: var(--font-lg); font-weight: 700; margin-bottom: 4px;">${escapeHtml(j.nama_mapel)}</h3>
+          <p style="font-size: var(--font-sm); color: var(--text-muted); margin-bottom: var(--space-4);">Kelas ${escapeHtml(j.nama_kelas)}</p>
+          <button type="button" class="btn ${btnClass} btn-block" onclick="openFormPresensi('${escapeHtml(j.id_jadwal)}', '${escapeHtml(data.tanggal)}')">
+            ${btnIcon}
+            ${btnText}
+          </button>
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+/**
+ * Membuka formulir presensi untuk jadwal dan tanggal tertentu
+ */
+function openFormPresensi(idJadwal, tanggal) {
+  const token = getStoredToken();
+  if (!token) {
+    showToast('Sesi tidak valid, silakan login kembali', 'danger');
+    return;
+  }
+
+  navigateTo('form-presensi');
+
+  const form = document.getElementById('form-presensi-siswa');
+  const loader = document.getElementById('form-presensi-loading');
+  const badgeMapel = document.getElementById('form-badge-mapel-kelas');
+  const badgeMode = document.getElementById('form-badge-mode');
+  const titleEl = document.getElementById('form-presensi-title');
+  const subtitleEl = document.getElementById('form-presensi-subtitle');
+
+  if (form) form.style.display = 'none';
+  if (loader) loader.style.display = 'block';
+
+  if (typeof google === 'undefined' || !google.script || !google.script.run) {
+    if (loader) loader.style.display = 'none';
+    showToast('Google Apps Script runtime tidak terdeteksi', 'warning');
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler(function (res) {
+      if (loader) loader.style.display = 'none';
+      currentPresensiFormData = res;
+      renderFormPresensi(res);
+    })
+    .withFailureHandler(function (err) {
+      if (loader) loader.style.display = 'none';
+      showToast('Gagal memuat form presensi: ' + (err.message || 'kesalahan server'), 'danger');
+      navigateTo('jadwal-guru');
+    })
+    .getFormPresensi(token, idJadwal, tanggal);
+}
+
+/**
+ * Render form presensi dan daftar siswa
+ */
+function renderFormPresensi(data) {
+  const form = document.getElementById('form-presensi-siswa');
+  const container = document.getElementById('attendance-list-container');
+  const badgeMapel = document.getElementById('form-badge-mapel-kelas');
+  const badgeMode = document.getElementById('form-badge-mode');
+  const subtitleEl = document.getElementById('form-presensi-subtitle');
+  const modifiedInfoEl = document.getElementById('presensi-last-modified-info');
+
+  if (!form || !container) return;
+
+  if (badgeMapel) {
+    badgeMapel.textContent = `${data.nama_mapel} • ${data.nama_kelas}`;
+  }
+
+  if (badgeMode) {
+    if (data.mode === 'edit') {
+      badgeMode.style.display = 'inline-block';
+      badgeMode.className = 'badge badge-izin';
+      badgeMode.textContent = 'Mode Edit';
+    } else {
+      badgeMode.style.display = 'none';
+    }
+  }
+
+  if (subtitleEl) {
+    subtitleEl.textContent = `${data.hari}, ${data.tanggal} • Jam: ${data.jam_mulai} - ${data.jam_selesai} • Total: ${data.students.length} Siswa`;
+  }
+
+  if (modifiedInfoEl) {
+    if (data.mode === 'edit' && data.last_modified) {
+      const waktu = data.last_modified.diubah_pada ? data.last_modified.diubah_pada.replace('T', ' ').replace('Z', '') : '';
+      modifiedInfoEl.textContent = `Terakhir diubah oleh NIP ${data.last_modified.diubah_oleh} pada ${waktu}`;
+    } else {
+      modifiedInfoEl.textContent = 'Perubahan terakhir dicatat otomatis oleh server.';
+    }
+  }
+
+  let html = '';
+  const students = data.students || [];
+
+  students.forEach(function (s, idx) {
+    const nisSafe = escapeHtml(s.nis);
+    const namaSafe = escapeHtml(s.nama);
+    const currentStatus = s.status || 'Hadir';
+    const keteranganVal = escapeHtml(s.keterangan || '');
+
+    // Penanda pengajuan izin/sakit jika ada
+    let markerHtml = '';
+    if (s.izin_marker) {
+      const jns = escapeHtml(s.izin_marker.jenis);
+      const st = escapeHtml(s.izin_marker.status);
+      let badgeCls = 'badge-wait-appr';
+      if (st === 'Disetujui') badgeCls = 'badge-approved';
+      markerHtml = `<span class="badge ${badgeCls}" style="margin-left: auto;">Mengajukan ${jns} (${st})</span>`;
+    }
+
+    html += `
+      <div class="attendance-card" id="card_student_${nisSafe}">
+        <div class="attendance-card-header">
+          <div class="student-info">
+            ${idx + 1}. ${namaSafe} <span class="student-nis">&bull; NIS: ${nisSafe}</span>
+          </div>
+          ${markerHtml}
+        </div>
+        <div class="status-group">
+          <label>
+            <input type="radio" name="status_${nisSafe}" value="Hadir" class="status-radio"
+              ${currentStatus === 'Hadir' ? 'checked' : ''} onchange="updateAttendanceCounters()">
+            <span class="status-btn-label">Hadir</span>
+          </label>
+          <label>
+            <input type="radio" name="status_${nisSafe}" value="Izin" class="status-radio"
+              ${currentStatus === 'Izin' ? 'checked' : ''} onchange="updateAttendanceCounters()">
+            <span class="status-btn-label">Izin</span>
+          </label>
+          <label>
+            <input type="radio" name="status_${nisSafe}" value="Sakit" class="status-radio"
+              ${currentStatus === 'Sakit' ? 'checked' : ''} onchange="updateAttendanceCounters()">
+            <span class="status-btn-label">Sakit</span>
+          </label>
+          <label>
+            <input type="radio" name="status_${nisSafe}" value="Alpa" class="status-radio"
+              ${currentStatus === 'Alpa' ? 'checked' : ''} onchange="updateAttendanceCounters()">
+            <span class="status-btn-label">Alpa</span>
+          </label>
+        </div>
+        <input type="text" class="form-control" id="ket_${nisSafe}" value="${keteranganVal}"
+          maxlength="200" placeholder="Keterangan opsional (maks 200 karakter)">
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+  form.style.display = 'block';
+  updateAttendanceCounters();
+}
+
+/**
+ * Memperbarui counter ringkasan realtime
+ */
+function updateAttendanceCounters() {
+  if (!currentPresensiFormData || !currentPresensiFormData.students) return;
+
+  let countHadir = 0;
+  let countIzin = 0;
+  let countSakit = 0;
+  let countAlpa = 0;
+
+  const students = currentPresensiFormData.students;
+  for (let i = 0; i < students.length; i++) {
+    const nis = students[i].nis;
+    const checked = document.querySelector(`input[name="status_${nis}"]:checked`);
+    const val = checked ? checked.value : 'Hadir';
+    if (val === 'Hadir') countHadir++;
+    else if (val === 'Izin') countIzin++;
+    else if (val === 'Sakit') countSakit++;
+    else if (val === 'Alpa') countAlpa++;
+  }
+
+  const elHadir = document.getElementById('counter-hadir');
+  const elIzin = document.getElementById('counter-izin');
+  const elSakit = document.getElementById('counter-sakit');
+  const elAlpa = document.getElementById('counter-alpa');
+
+  if (elHadir) elHadir.textContent = countHadir;
+  if (elIzin) elIzin.textContent = countIzin;
+  if (elSakit) elSakit.textContent = countSakit;
+  if (elAlpa) elAlpa.textContent = countAlpa;
+}
+
+/**
+ * Tandai semua siswa menjadi 'Hadir'
+ */
+function markAllHadir() {
+  if (!currentPresensiFormData || !currentPresensiFormData.students) return;
+
+  const students = currentPresensiFormData.students;
+  students.forEach(function (s) {
+    const radioHadir = document.querySelector(`input[name="status_${s.nis}"][value="Hadir"]`);
+    if (radioHadir) {
+      radioHadir.checked = true;
+    }
+  });
+
+  updateAttendanceCounters();
+  showToast('Semua siswa ditandai Hadir', 'info');
+}
+
+/**
+ * Handler submit penyimpanan presensi
+ */
+function handlePresensiSubmit(event) {
+  event.preventDefault();
+  if (!currentPresensiFormData) return;
+
+  const token = getStoredToken();
+  if (!token) {
+    showToast('Sesi tidak valid, silakan login kembali', 'danger');
+    return;
+  }
+
+  const btn = document.getElementById('btn-save-presensi');
+  setBtnLoading(btn, true, 'Menyimpan...');
+
+  // Susun data presensi setiap siswa
+  const rows = currentPresensiFormData.students.map(function (s) {
+    const selectedRadio = document.querySelector(`input[name="status_${s.nis}"]:checked`);
+    const ketInput = document.getElementById(`ket_${s.nis}`);
+    return {
+      nis: s.nis,
+      status: selectedRadio ? selectedRadio.value : 'Hadir',
+      keterangan: ketInput ? ketInput.value.trim() : ''
+    };
+  });
+
+  if (typeof google === 'undefined' || !google.script || !google.script.run) {
+    setBtnLoading(btn, false, 'Simpan Presensi');
+    showToast('Google Apps Script runtime tidak terdeteksi', 'warning');
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler(function (res) {
+      setBtnLoading(btn, false, 'Simpan Presensi');
+      showToast(res.message || 'Presensi berhasil disimpan!', 'success');
+      // Muat ulang form untuk memperbarui data mode edit dan timestamp
+      openFormPresensi(currentPresensiFormData.id_jadwal, currentPresensiFormData.tanggal);
+    })
+    .withFailureHandler(function (err) {
+      setBtnLoading(btn, false, 'Simpan Presensi');
+      showToast('Gagal menyimpan presensi: ' + (err.message || 'kesalahan server'), 'danger');
+    })
+    .savePresensi(token, currentPresensiFormData.id_jadwal, currentPresensiFormData.tanggal, rows);
+}
+</script>
+

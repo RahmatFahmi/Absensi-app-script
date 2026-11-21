@@ -1,0 +1,543 @@
+<script>
+/**
+ * Aplikasi Presensi Sekolah - Client Script Kerangka Dasar & Auth (T02)
+ * Vanilla JavaScript (No build framework)
+ */
+
+// Sesi aktif di memori JS
+let currentSession = null;
+let isForcedChangePassword = false;
+
+/**
+ * Penyimpanan token aman (JS Memory + sessionStorage fallback)
+ */
+function getStoredToken() {
+  if (currentSession && currentSession.token) {
+    return currentSession.token;
+  }
+  try {
+    return sessionStorage.getItem('presensi_token');
+  } catch (e) {
+    return null;
+  }
+}
+
+function setStoredSession(token, user) {
+  currentSession = token ? { token, user } : null;
+  try {
+    if (token) {
+      sessionStorage.setItem('presensi_token', token);
+    } else {
+      sessionStorage.removeItem('presensi_token');
+    }
+  } catch (e) {
+    // sessionStorage diblokir atau mode private ketat
+  }
+}
+
+/**
+ * Escape teks sebelum dimasukkan ke innerHTML (dipakai semua halaman)
+ */
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/**
+ * Inisialisasi saat DOM siap
+ */
+document.addEventListener('DOMContentLoaded', () => {
+  // Listener tombol Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !isForcedChangePassword) {
+      closeAllModals();
+      toggleSidebar(false);
+    }
+  });
+
+  // Periksa apakah ada token tersimpan di sessionStorage saat halaman dimuat
+  const existingToken = getStoredToken();
+  if (existingToken && typeof google !== 'undefined' && google.script && google.script.run) {
+    google.script.run
+      .withSuccessHandler((session) => {
+        setStoredSession(existingToken, session);
+        if (session.wajib_ganti_password) {
+          showChangePasswordModal(true);
+        } else {
+          initAppForUser(session);
+        }
+      })
+      .withFailureHandler(() => {
+        // Sesi sudah tidak valid atau kedaluwarsa di server
+        setStoredSession(null, null);
+      })
+      .whoAmI(existingToken);
+  }
+});
+
+/**
+ * Submit Form Login
+ */
+function handleLoginSubmit() {
+  const usernameInput = document.getElementById('login-username');
+  const passwordInput = document.getElementById('login-password');
+  const submitBtn = document.getElementById('btn-login-submit');
+
+  const username = usernameInput ? usernameInput.value.trim() : '';
+  const password = passwordInput ? passwordInput.value : '';
+
+  if (!username || !password) {
+    showLoginAlert('Username dan password wajib diisi.', 'danger');
+    return;
+  }
+
+  setBtnLoading(submitBtn, true, 'Memproses...');
+  clearLoginAlert();
+
+  if (typeof google === 'undefined' || !google.script || !google.script.run) {
+    setBtnLoading(submitBtn, false, 'Masuk ke Aplikasi');
+    showLoginAlert('Google Apps Script runtime tidak terdeteksi (uji di Apps Script Editor).', 'warning');
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler((res) => {
+      setBtnLoading(submitBtn, false, 'Masuk ke Aplikasi');
+      setStoredSession(res.token, res.user);
+
+      if (res.user.wajib_ganti_password) {
+        showChangePasswordModal(true);
+      } else {
+        initAppForUser(res.user);
+        showToast(`Selamat datang, ${res.user.username}!`, 'success');
+      }
+    })
+    .withFailureHandler((err) => {
+      setBtnLoading(submitBtn, false, 'Masuk ke Aplikasi');
+      const msg = err && err.message ? err.message : 'Username atau password salah';
+      showLoginAlert(msg, 'danger');
+    })
+    .login(username, password);
+}
+
+/**
+ * Inisialisasi tampilan antarmuka pengguna berdasarkan data sesi terverifikasi server
+ * @param {Object} user - { id_user, username, role, ref_id }
+ */
+function initAppForUser(user) {
+  const appFramework = document.getElementById('app-framework');
+  const pageLogin = document.getElementById('page-login');
+
+  if (pageLogin) {
+    pageLogin.classList.remove('active');
+    pageLogin.setAttribute('hidden', '');
+    pageLogin.style.display = 'none';
+  }
+
+  if (appFramework) {
+    appFramework.removeAttribute('hidden');
+    appFramework.style.display = 'flex';
+  }
+
+  // Update identitas pengguna di sidebar dan topbar
+  const nameEl = document.getElementById('sidebar-user-name');
+  const roleEl = document.getElementById('sidebar-user-role');
+  const avatarEl = document.getElementById('sidebar-avatar');
+  const topbarRoleEl = document.getElementById('topbar-role-badge');
+
+  if (nameEl) nameEl.textContent = user.username;
+  if (roleEl) roleEl.textContent = user.ref_id ? `${user.role} (${user.ref_id})` : user.role;
+  if (avatarEl) avatarEl.textContent = user.username.slice(0, 2).toUpperCase();
+  if (topbarRoleEl) {
+    topbarRoleEl.textContent = user.role;
+    topbarRoleEl.className = `badge badge-${user.role.toLowerCase()}`;
+  }
+
+  // Tampilkan hanya seksi menu yang sesuai dengan role dari server
+  const roleSections = document.querySelectorAll('.role-menu-section');
+  roleSections.forEach((section) => {
+    const secRole = section.getAttribute('data-role-section');
+    if (secRole === user.role) {
+      section.style.display = 'block';
+    } else {
+      section.style.display = 'none';
+    }
+  });
+
+  // Arahkan otomatis ke dashboard sesuai role
+  let defaultPage = 'dashboard-guru';
+  if (user.role === 'Admin') defaultPage = 'dashboard-admin';
+  else if (user.role === 'Siswa') defaultPage = 'dashboard-siswa';
+
+  navigateTo(defaultPage);
+}
+
+/**
+ * Tampilkan modal ganti password
+ * @param {boolean} isForced - Apakah bersifat wajib (tidak bisa ditutup tanpa logout)
+ */
+function showChangePasswordModal(isForced) {
+  isForcedChangePassword = Boolean(isForced);
+  const modal = document.getElementById('modal-change-password');
+  const closeBtn = document.getElementById('btn-close-cp');
+  const cancelBtn = document.getElementById('btn-cancel-cp');
+  const titleEl = document.getElementById('modal-cp-title');
+  const instructionEl = document.getElementById('cp-instruction-text');
+  const form = document.getElementById('form-change-password');
+  const alertSlot = document.getElementById('change-pass-alert-slot');
+
+  if (form) form.reset();
+  if (alertSlot) alertSlot.innerHTML = '';
+
+  if (isForced) {
+    if (closeBtn) closeBtn.style.display = 'none';
+    if (cancelBtn) cancelBtn.textContent = 'Batal & Keluar';
+    if (titleEl) titleEl.textContent = 'Wajib Ganti Password';
+    if (instructionEl) {
+      instructionEl.innerHTML = '<span style="color: var(--color-alpa); font-weight: 700;">* Login Pertama:</span> Anda wajib mengganti password default sebelum dapat mengakses aplikasi. Password minimal 8 karakter dan tidak boleh sama dengan username/NIS/NIP.';
+    }
+  } else {
+    if (closeBtn) closeBtn.style.display = 'block';
+    if (cancelBtn) cancelBtn.textContent = 'Batal';
+    if (titleEl) titleEl.textContent = 'Ganti Password';
+    if (instructionEl) {
+      instructionEl.innerHTML = 'Password baru minimal <strong>8 karakter</strong> dan tidak boleh sama dengan username atau NIS/NIP.';
+    }
+  }
+
+  if (modal) {
+    modal.removeAttribute('hidden');
+    modal.classList.add('open');
+    const firstInput = document.getElementById('input-pass-lama');
+    if (firstInput) firstInput.focus();
+  }
+}
+
+/**
+ * Tutup modal ganti password
+ */
+function closeChangePasswordModal() {
+  if (isForcedChangePassword) return; // Tidak boleh ditutup jika wajib ganti
+  const modal = document.getElementById('modal-change-password');
+  if (modal) {
+    modal.classList.remove('open');
+    modal.setAttribute('hidden', '');
+  }
+}
+
+/**
+ * Batal pada dialog ganti password
+ */
+function handleCancelChangePassword() {
+  if (isForcedChangePassword) {
+    logoutApp();
+  } else {
+    closeChangePasswordModal();
+  }
+}
+
+/**
+ * Submit Form Ganti Password
+ */
+function handleChangePasswordSubmit() {
+  const lamaInput = document.getElementById('input-pass-lama');
+  const baruInput = document.getElementById('input-pass-baru');
+  const konfirmasiInput = document.getElementById('input-pass-konfirmasi');
+  const submitBtn = document.getElementById('btn-change-pass-submit');
+
+  const lama = lamaInput ? lamaInput.value : '';
+  const baru = baruInput ? baruInput.value : '';
+  const konfirmasi = konfirmasiInput ? konfirmasiInput.value : '';
+
+  if (baru.length < 8) {
+    showChangePassAlert('Password baru minimal 8 karakter.', 'danger');
+    return;
+  }
+
+  if (baru !== konfirmasi) {
+    showChangePassAlert('Konfirmasi password baru tidak cocok.', 'danger');
+    return;
+  }
+
+  const token = getStoredToken();
+  if (!token) {
+    showChangePassAlert('Sesi telah berakhir. Silakan login kembali.', 'danger');
+    logoutApp();
+    return;
+  }
+
+  setBtnLoading(submitBtn, true, 'Menyimpan...');
+  clearChangePassAlert();
+
+  if (typeof google === 'undefined' || !google.script || !google.script.run) {
+    setBtnLoading(submitBtn, false, 'Simpan Password Baru');
+    showChangePassAlert('Google Apps Script runtime tidak terdeteksi.', 'warning');
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler((res) => {
+      setBtnLoading(submitBtn, false, 'Simpan Password Baru');
+      showToast('Password berhasil diubah!', 'success');
+      isForcedChangePassword = false;
+      closeChangePasswordModal();
+
+      if (currentSession && currentSession.user) {
+        currentSession.user.wajib_ganti_password = false;
+        initAppForUser(currentSession.user);
+      }
+    })
+    .withFailureHandler((err) => {
+      setBtnLoading(submitBtn, false, 'Simpan Password Baru');
+      const msg = err && err.message ? err.message : 'Gagal mengganti password';
+      showChangePassAlert(msg, 'danger');
+    })
+    .changePassword(token, lama, baru);
+}
+
+/**
+ * Logout aplikasi: bersihkan sesi klien dan panggil logout di server
+ */
+function logoutApp() {
+  const token = getStoredToken();
+  setStoredSession(null, null);
+  isForcedChangePassword = false;
+
+  if (token && typeof google !== 'undefined' && google.script && google.script.run) {
+    google.script.run.logout(token);
+  }
+
+  // Tampilkan kembali layar login
+  const appFramework = document.getElementById('app-framework');
+  const pageLogin = document.getElementById('page-login');
+
+  if (appFramework) {
+    appFramework.style.display = 'none';
+    appFramework.setAttribute('hidden', '');
+  }
+
+  if (pageLogin) {
+    pageLogin.removeAttribute('hidden');
+    pageLogin.style.display = 'block';
+    pageLogin.classList.add('active');
+  }
+
+  const formLogin = document.getElementById('form-login');
+  if (formLogin) formLogin.reset();
+
+  closeAllModals();
+  clearLoginAlert();
+  showToast('Anda telah keluar dari aplikasi.', 'info');
+}
+
+/**
+ * Navigasi antar halaman
+ * @param {string} pageId
+ */
+function navigateTo(pageId) {
+  if (!pageId) return;
+
+  if (pageId === 'pengajuan-saya') {
+    navigateTo('pengajuan-siswa');
+    if (typeof switchSiswaTab === 'function') switchSiswaTab('riwayat');
+    return;
+  }
+
+  const pages = document.querySelectorAll('main.main-content .page');
+  pages.forEach((p) => {
+    p.classList.remove('active');
+    p.setAttribute('hidden', '');
+    p.style.display = 'none';
+  });
+
+  const target = document.getElementById(`page-${pageId}`);
+  if (target) {
+    target.removeAttribute('hidden');
+    target.style.display = 'block';
+    target.classList.add('active');
+
+    // Hook inisialisasi halaman Data Master
+    if (pageId === 'master-siswa' && typeof initMasterPage === 'function') {
+      initMasterPage();
+    }
+
+    // Hook inisialisasi halaman Semester & Jadwal
+    if (pageId === 'semester-jadwal' && typeof initSemesterJadwalPage === 'function') {
+      initSemesterJadwalPage();
+    }
+
+    // Hook inisialisasi halaman Import Data Paste
+    if (pageId === 'import-data' && typeof initImportPage === 'function') {
+      initImportPage();
+    }
+
+    // Hook inisialisasi halaman Jadwal Guru (T06)
+    if (pageId === 'jadwal-guru' && typeof initJadwalGuruPage === 'function') {
+      initJadwalGuruPage();
+    }
+
+    // Hook inisialisasi halaman Pengajuan Siswa (T07)
+    if (pageId === 'pengajuan-siswa' && typeof initPengajuanSiswaPage === 'function') {
+      initPengajuanSiswaPage();
+    }
+
+    // Hook inisialisasi halaman Persetujuan Guru (T08)
+    if (pageId === 'persetujuan-guru' && typeof initPersetujuanGuruPage === 'function') {
+      initPersetujuanGuruPage();
+    }
+
+    // Hook inisialisasi halaman Rekap Kehadiran (T09)
+    if (pageId === 'rekap-presensi' && typeof initRekapPage === 'function') {
+      initRekapPage();
+    }
+
+    // Hook inisialisasi Dashboard per Role (T10)
+    if (pageId.indexOf('dashboard-') === 0 && typeof initDashboardPage === 'function') {
+      initDashboardPage(pageId);
+    }
+  } else {
+    // Tampilkan placeholder untuk menu lain (Task selanjutnya)
+    const placeholder = document.getElementById('page-placeholder');
+    const titleEl = document.getElementById('placeholder-title');
+    const descEl = document.getElementById('placeholder-desc');
+    if (placeholder) {
+      placeholder.removeAttribute('hidden');
+      placeholder.style.display = 'block';
+      placeholder.classList.add('active');
+      if (titleEl) titleEl.textContent = pageId.replace('-', ' ').toUpperCase();
+      if (descEl) descEl.textContent = `Halaman ${pageId} akan diimplementasikan pada task berikutnya.`;
+    }
+  }
+
+  // Update navigasi aktif di sidebar
+  const navItems = document.querySelectorAll('.sidebar-nav .nav-item');
+  navItems.forEach((item) => {
+    if (item.getAttribute('data-target') === pageId) {
+      item.classList.add('active');
+    } else {
+      item.classList.remove('active');
+    }
+  });
+
+  toggleSidebar(false);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/**
+ * Navigasi khusus menu Siswa (Ajukan Izin/Sakit vs Pengajuan Saya)
+ * @param {'ajukan'|'riwayat'} view
+ */
+function navigateToSiswaView(view) {
+  navigateTo('pengajuan-siswa');
+  if (typeof switchSiswaTab === 'function') {
+    switchSiswaTab(view);
+  }
+}
+
+/**
+ * Helper alert box
+ */
+function showLoginAlert(msg, type = 'danger') {
+  const slot = document.getElementById('login-alert-slot');
+  if (!slot) return;
+  slot.innerHTML = `<div class="alert alert-${type}" role="alert">${msg}</div>`;
+}
+
+function clearLoginAlert() {
+  const slot = document.getElementById('login-alert-slot');
+  if (slot) slot.innerHTML = '';
+}
+
+function showChangePassAlert(msg, type = 'danger') {
+  const slot = document.getElementById('change-pass-alert-slot');
+  if (!slot) return;
+  slot.innerHTML = `<div class="alert alert-${type}" role="alert">${msg}</div>`;
+}
+
+function clearChangePassAlert() {
+  const slot = document.getElementById('change-pass-alert-slot');
+  if (slot) slot.innerHTML = '';
+}
+
+function setBtnLoading(btn, isLoading, defaultText) {
+  if (!btn) return;
+  btn.disabled = isLoading;
+  btn.innerHTML = isLoading
+    ? `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ${defaultText}`
+    : defaultText;
+}
+
+/**
+ * Sidebar drawer toggle
+ */
+function toggleSidebar(isOpen) {
+  const sidebar = document.getElementById('app-sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  const closeBtn = document.getElementById('sidebar-close-btn');
+
+  if (sidebar) {
+    if (isOpen) {
+      sidebar.classList.add('open');
+      if (backdrop) backdrop.classList.add('open');
+      if (closeBtn) closeBtn.style.display = 'flex';
+    } else {
+      sidebar.classList.remove('open');
+      if (backdrop) backdrop.classList.remove('open');
+      if (closeBtn) closeBtn.style.display = 'none';
+    }
+  }
+}
+
+/**
+ * Tutup seluruh modal
+ */
+function closeAllModals() {
+  const modals = document.querySelectorAll('.modal-backdrop');
+  modals.forEach((m) => {
+    m.classList.remove('open');
+    m.setAttribute('hidden', '');
+  });
+}
+
+/**
+ * Toast notification
+ */
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+
+  let iconSvg = '';
+  if (type === 'success') {
+    iconSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--color-hadir); flex-shrink: 0;"><polyline points="20 6 9 17 4 12"/></svg>';
+  } else if (type === 'error' || type === 'danger') {
+    iconSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--color-alpa); flex-shrink: 0;"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+  } else {
+    iconSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--primary); flex-shrink: 0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+  }
+
+  toast.innerHTML = `
+    ${iconSvg}
+    <div class="toast-message" style="flex: 1; min-width: 0;"></div>
+    <button type="button" class="btn-close" style="margin-left: var(--space-2);" onclick="this.parentElement.remove()" aria-label="Tutup">&times;</button>
+  `;
+  toast.querySelector('.toast-message').textContent = message;
+
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    if (toast.parentElement) {
+      toast.style.opacity = '0';
+      toast.style.transition = 'opacity 0.3s ease';
+      setTimeout(() => toast.remove(), 300);
+    }
+  }, 4000);
+}
+</script>

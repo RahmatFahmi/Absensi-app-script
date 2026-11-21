@@ -1,0 +1,284 @@
+<!-- ====================================================================
+     PAGE IMPORT DATA PASTE (T05)
+     Admin menempel data dari Excel/Sheets (pemisah tab), pratinjau,
+     lalu menyimpan hanya baris valid. Penyimpanan tetap di server.
+     ==================================================================== -->
+<section class="page" id="page-import-data" data-page="import-data" hidden>
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Import Data Paste</h2>
+      <p class="page-subtitle">Tempel data dari Excel/Spreadsheet (pemisah tab), pratinjau, lalu simpan baris yang valid.</p>
+    </div>
+  </div>
+
+  <div class="alert alert-info" role="alert">
+    Urutan import: <strong>Kelas &rarr; Mapel &rarr; Guru &rarr; Siswa &rarr; Jadwal</strong>.
+    Semester dibuat lebih dulu di halaman <strong>Semester &amp; Jadwal</strong>.
+    Batas: 500 baris data dan 200 KB teks per import.
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <div class="form-row"
+        style="display: flex; gap: var(--space-3); flex-wrap: wrap; align-items: flex-end; margin-bottom: var(--space-4);">
+        <div class="form-group" style="min-width: 200px; flex: 1; margin-bottom: 0;">
+          <label class="form-label" for="import-entity">Jenis Data</label>
+          <select class="form-select" id="import-entity" onchange="handleImportEntityChange()">
+            <option value="Kelas">Kelas</option>
+            <option value="Mapel">Mapel</option>
+            <option value="Guru">Guru</option>
+            <option value="Siswa">Siswa</option>
+            <option value="Jadwal">Jadwal</option>
+          </select>
+        </div>
+        <button type="button" class="btn btn-secondary" onclick="copyImportTemplate()">Salin Template</button>
+        <button type="button" class="btn btn-outline" id="btn-import-preview" onclick="runImportPreview()">Pratinjau</button>
+        <button type="button" class="btn btn-primary" id="btn-import-commit" onclick="runImportCommit()" disabled>Simpan 0 baris valid</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="import-text">Data Tempel (header di baris pertama)</label>
+        <textarea class="form-control" id="import-text" rows="10" spellcheck="false" oninput="resetImportPreview()"
+          placeholder="nama_kelas&#10;X-MIPA-1&#10;X-MIPA-2"></textarea>
+        <div class="form-help" id="import-template-help"></div>
+      </div>
+
+      <div id="import-alert-slot" data-slot="alert-container"></div>
+      <div class="text-sm" id="import-summary" style="margin-bottom: var(--space-3);" hidden></div>
+
+      <div class="table-container">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width: 90px;">Baris</th>
+              <th style="width: 120px;">Status</th>
+              <th>Pesan</th>
+            </tr>
+          </thead>
+          <tbody id="import-preview-body" data-slot="preview-body">
+            <tr>
+              <td colspan="3" style="text-align: center; padding: var(--space-6); color: var(--text-muted);">Belum ada pratinjau.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  /**
+   * Aplikasi Presensi Sekolah - Halaman Import Data Paste (T05)
+   * Pratinjau dan simpan selalu divalidasi ulang di server.
+   */
+  let importPreviewState = null;
+
+  function getImportEntity() {
+    const sel = document.getElementById('import-entity');
+    return sel ? sel.value : 'Kelas';
+  }
+
+  function importRuntimeReady_() {
+    if (typeof google !== 'undefined' && google.script && google.script.run) return true;
+    showImportAlert('Google Apps Script runtime tidak terdeteksi (uji di Apps Script Editor).', 'warning');
+    return false;
+  }
+
+  function initImportPage() {
+    clearImportAlert();
+    handleImportEntityChange();
+  }
+
+  function handleImportEntityChange() {
+    resetImportPreview();
+    clearImportAlert();
+    const entity = getImportEntity();
+    const help = document.getElementById('import-template-help');
+    if (help) help.textContent = 'Memuat format kolom...';
+    if (!importRuntimeReady_()) return;
+
+    google.script.run
+      .withSuccessHandler(function (tpl) {
+        if (getImportEntity() !== tpl.entity) return;
+        if (help) {
+          help.innerHTML = 'Kolom wajib (baris pertama): <strong>' +
+            tpl.headers.map(escapeHtml).join(', ') + '</strong>. Urutan kolom bebas, pemisah tab.';
+        }
+      })
+      .withFailureHandler(function () {
+        if (help) help.textContent = '';
+      })
+      .getImportTemplate(getStoredToken(), entity);
+  }
+
+  function copyImportTemplate() {
+    if (!importRuntimeReady_()) return;
+    const entity = getImportEntity();
+    google.script.run
+      .withSuccessHandler(function (tpl) {
+        const text = tpl.headers.join('\t') + '\n' + tpl.sample.join('\t');
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text)
+            .then(function () {
+              showToast('Template disalin. Tempel di Excel, isi data, lalu salin kembali ke sini.', 'success');
+            })
+            .catch(function () { copyImportTemplateFallback_(text); });
+        } else {
+          copyImportTemplateFallback_(text);
+        }
+      })
+      .withFailureHandler(function (err) {
+        showImportAlert(escapeHtml(err && err.message ? err.message : 'Gagal mengambil template'), 'danger');
+      })
+      .getImportTemplate(getStoredToken(), entity);
+  }
+
+  function copyImportTemplateFallback_(text) {
+    const ta = document.getElementById('import-text');
+    if (ta) {
+      ta.value = text;
+      ta.focus();
+    }
+    showToast('Clipboard diblokir browser; template dimasukkan ke kotak teks.', 'info');
+  }
+
+  function runImportPreview() {
+    if (!importRuntimeReady_()) return;
+    const token = getStoredToken();
+    if (!token) {
+      showImportAlert('Sesi telah berakhir. Silakan login kembali.', 'danger');
+      return;
+    }
+    const ta = document.getElementById('import-text');
+    const text = ta ? ta.value : '';
+    if (!text.trim()) {
+      showImportAlert('Tempel data beserta baris header terlebih dahulu.', 'warning');
+      return;
+    }
+
+    const entity = getImportEntity();
+    const btn = document.getElementById('btn-import-preview');
+    setBtnLoading(btn, true, 'Memproses...');
+    clearImportAlert();
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setBtnLoading(btn, false, 'Pratinjau');
+        renderImportPreview(entity, res);
+      })
+      .withFailureHandler(function (err) {
+        setBtnLoading(btn, false, 'Pratinjau');
+        resetImportPreview();
+        showImportAlert(escapeHtml(err && err.message ? err.message : 'Gagal memproses pratinjau'), 'danger');
+      })
+      .previewImport(token, entity, text);
+  }
+
+  function runImportCommit() {
+    const state = importPreviewState;
+    if (!state || state.valid < 1) return;
+    const entity = getImportEntity();
+    if (state.entity !== entity) {
+      resetImportPreview();
+      showImportAlert('Jenis data berubah. Jalankan pratinjau ulang.', 'warning');
+      return;
+    }
+    if (!importRuntimeReady_()) return;
+    const token = getStoredToken();
+    if (!token) {
+      showImportAlert('Sesi telah berakhir. Silakan login kembali.', 'danger');
+      return;
+    }
+    const ta = document.getElementById('import-text');
+    const text = ta ? ta.value : '';
+    const btn = document.getElementById('btn-import-commit');
+    setBtnLoading(btn, true, 'Menyimpan...');
+    clearImportAlert();
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        updateImportCommitLabel(state.valid);
+        showToast(escapeHtml(res && res.message ? res.message : 'Import selesai.'), res && res.saved > 0 ? 'success' : 'warning');
+        if (ta) ta.value = '';
+        resetImportPreview();
+      })
+      .withFailureHandler(function (err) {
+        updateImportCommitLabel(state.valid);
+        showImportAlert(escapeHtml(err && err.message ? err.message : 'Gagal menyimpan import'), 'danger');
+      })
+      .commitImport(token, entity, text);
+  }
+
+  function renderImportPreview(entity, res) {
+    const plan = res || {};
+    if (plan.fatal) {
+      resetImportPreview();
+      showImportAlert(escapeHtml(plan.fatal), 'danger');
+      return;
+    }
+
+    const rows = plan.rows || [];
+    const valid = plan.summary ? plan.summary.valid : 0;
+    const invalid = plan.summary ? plan.summary.invalid : 0;
+    const body = document.getElementById('import-preview-body');
+
+    if (body) {
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: var(--space-6); color: var(--text-muted);">Tidak ada baris data.</td></tr>';
+      } else {
+        body.innerHTML = rows.map(function (r) {
+          const ok = r.status === 'ok';
+          const badge = ok
+            ? '<span class="badge badge-hadir">Valid</span>'
+            : '<span class="badge badge-alpa">Error</span>';
+          const msg = ok
+            ? 'Siap disimpan'
+            : (r.errors || []).map(function (e) { return escapeHtml(e); }).join('<br>');
+          return '<tr><td>' + r.line + '</td><td>' + badge + '</td><td>' + msg + '</td></tr>';
+        }).join('');
+      }
+    }
+
+    const summary = document.getElementById('import-summary');
+    if (summary) {
+      summary.hidden = false;
+      summary.innerHTML = '<strong>' + valid + ' valid, ' + invalid + ' error</strong>';
+      summary.style.color = invalid ? 'var(--color-sakit)' : 'var(--color-hadir)';
+    }
+
+    importPreviewState = { entity: entity, valid: valid };
+    updateImportCommitLabel(valid);
+  }
+
+  function resetImportPreview() {
+    importPreviewState = null;
+    const summary = document.getElementById('import-summary');
+    if (summary) {
+      summary.hidden = true;
+      summary.textContent = '';
+    }
+    const body = document.getElementById('import-preview-body');
+    if (body) {
+      body.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: var(--space-6); color: var(--text-muted);">Belum ada pratinjau.</td></tr>';
+    }
+    updateImportCommitLabel(0);
+  }
+
+  function updateImportCommitLabel(validCount) {
+    const btn = document.getElementById('btn-import-commit');
+    if (!btn) return;
+    btn.disabled = validCount < 1;
+    btn.textContent = 'Simpan ' + validCount + ' baris valid';
+  }
+
+  function showImportAlert(msg, type) {
+    const slot = document.getElementById('import-alert-slot');
+    if (!slot) return;
+    slot.innerHTML = '<div class="alert alert-' + (type || 'danger') + '" role="alert">' + msg + '</div>';
+  }
+
+  function clearImportAlert() {
+    const slot = document.getElementById('import-alert-slot');
+    if (slot) slot.innerHTML = '';
+  }
+</script>

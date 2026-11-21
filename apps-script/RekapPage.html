@@ -1,0 +1,327 @@
+<!-- ==================================================================
+     HALAMAN REKAP KEHADIRAN (T09) - data-page="rekap-presensi"
+     ================================================================== -->
+<section class="page" id="page-rekap-presensi" data-page="rekap-presensi" hidden>
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Rekap Kehadiran</h2>
+      <p class="page-subtitle" id="rekap-subtitle">Ringkasan kehadiran per mapel dan kelas pada semester yang dipilih.</p>
+    </div>
+    <div data-rekap-guru-admin style="display: none;">
+      <button type="button" class="btn btn-success" id="btn-ekspor-rekap" onclick="eksporRekapExcel()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+        Ekspor Excel
+      </button>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom: var(--space-4);">
+    <div class="card-body">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--space-3);">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" for="rekap-filter-semester">Semester</label>
+          <select id="rekap-filter-semester" class="form-select"></select>
+        </div>
+        <div class="form-group" data-rekap-kelas-filter style="margin-bottom: 0;">
+          <label class="form-label" for="rekap-filter-kelas">Kelas</label>
+          <select id="rekap-filter-kelas" class="form-select">
+            <option value="">Semua kelas</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" for="rekap-filter-mapel">Mata Pelajaran</label>
+          <select id="rekap-filter-mapel" class="form-select">
+            <option value="">Semua mapel</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" for="rekap-filter-dari">Dari Tanggal</label>
+          <input type="date" id="rekap-filter-dari" class="form-control">
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" for="rekap-filter-sampai">Sampai Tanggal</label>
+          <input type="date" id="rekap-filter-sampai" class="form-control">
+        </div>
+      </div>
+      <div style="display: flex; gap: var(--space-2); margin-top: var(--space-3); flex-wrap: wrap;">
+        <button type="button" class="btn btn-primary" id="btn-muat-rekap" onclick="muatRekap()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          Tampilkan Rekap
+        </button>
+        <button type="button" class="btn btn-outline" onclick="resetFilterRekap()">Reset Filter</button>
+      </div>
+      <p class="form-help" style="margin-top: var(--space-2);">Persentase hadir = Hadir / (Hadir + Izin + Sakit + Alpa). Hanya pertemuan yang sudah dicatat dihitung.</p>
+    </div>
+  </div>
+
+  <div id="rekap-summary" style="display: none; gap: var(--space-2); margin-bottom: var(--space-4); flex-wrap: wrap;">
+    <div style="flex: 1; min-width: 90px; background: var(--bg-hadir); border: 1px solid var(--border-hadir); border-radius: var(--radius-md); padding: 8px 12px; text-align: center;">
+      <div class="text-sm" style="color: var(--color-hadir); font-weight: 700;">Hadir</div>
+      <div style="font-size: var(--font-lg); font-weight: 800; color: var(--color-hadir);" id="rekap-total-hadir">0</div>
+    </div>
+    <div style="flex: 1; min-width: 90px; background: var(--bg-izin); border: 1px solid var(--border-izin); border-radius: var(--radius-md); padding: 8px 12px; text-align: center;">
+      <div class="text-sm" style="color: var(--color-izin); font-weight: 700;">Izin</div>
+      <div style="font-size: var(--font-lg); font-weight: 800; color: var(--color-izin);" id="rekap-total-izin">0</div>
+    </div>
+    <div style="flex: 1; min-width: 90px; background: var(--bg-sakit); border: 1px solid var(--border-sakit); border-radius: var(--radius-md); padding: 8px 12px; text-align: center;">
+      <div class="text-sm" style="color: var(--color-sakit); font-weight: 700;">Sakit</div>
+      <div style="font-size: var(--font-lg); font-weight: 800; color: var(--color-sakit);" id="rekap-total-sakit">0</div>
+    </div>
+    <div style="flex: 1; min-width: 90px; background: var(--bg-alpa); border: 1px solid var(--border-alpa); border-radius: var(--radius-md); padding: 8px 12px; text-align: center;">
+      <div class="text-sm" style="color: var(--color-alpa); font-weight: 700;">Alpa</div>
+      <div style="font-size: var(--font-lg); font-weight: 800; color: var(--color-alpa);" id="rekap-total-alpa">0</div>
+    </div>
+    <div style="flex: 1; min-width: 90px; background: var(--primary-subtle); border: 1px solid var(--primary); border-radius: var(--radius-md); padding: 8px 12px; text-align: center;">
+      <div class="text-sm" style="color: var(--primary); font-weight: 700;">% Hadir</div>
+      <div style="font-size: var(--font-lg); font-weight: 800; color: var(--primary);" id="rekap-total-persen">-</div>
+    </div>
+  </div>
+
+  <div id="rekap-loading" style="display: none; text-align: center; padding: var(--space-8);">
+    <div class="loading-spinner" style="margin: 0 auto var(--space-3);"></div>
+    <div class="text-muted text-sm">Menghitung rekap kehadiran...</div>
+  </div>
+
+  <div id="rekap-empty" class="empty-state" style="display: none; padding: var(--space-4);">
+    <p class="text-muted">Belum ada presensi yang tercatat untuk filter ini.</p>
+  </div>
+
+  <div class="table-container" id="rekap-table-container" style="display: none;">
+    <table class="table">
+      <thead id="rekap-table-head"></thead>
+      <tbody id="rekap-table-body" data-slot="table-body"></tbody>
+    </table>
+  </div>
+</section>
+
+<script>
+/**
+ * Logika Klien Halaman Rekap Kehadiran (T09)
+ */
+let rekapOpsi = null;
+let rekapRole = '';
+
+function initRekapPage() {
+  const user = currentSession && currentSession.user ? currentSession.user : null;
+  rekapRole = user ? String(user.role || '') : '';
+
+  const guruAdmin = rekapRole === 'Guru' || rekapRole === 'Admin';
+  document.querySelectorAll('[data-rekap-guru-admin]').forEach(function (el) {
+    el.style.display = guruAdmin ? 'block' : 'none';
+  });
+
+  const kelasFilter = document.querySelector('[data-rekap-kelas-filter]');
+  if (kelasFilter) kelasFilter.style.display = rekapRole === 'Siswa' ? 'none' : 'block';
+
+  const subtitle = document.getElementById('rekap-subtitle');
+  if (subtitle) {
+    subtitle.textContent = rekapRole === 'Siswa'
+      ? 'Rekap kehadiran Anda per mata pelajaran pada semester yang dipilih.'
+      : 'Ringkasan kehadiran per kelas dan mata pelajaran pada semester yang dipilih.';
+  }
+
+  resetFilterRekap();
+  muatOpsiRekap();
+}
+
+function muatOpsiRekap() {
+  const token = getStoredToken();
+  if (!token) return;
+  if (typeof google === 'undefined' || !google.script || !google.script.run) return;
+
+  setRekapLoading(true);
+  google.script.run
+    .withSuccessHandler(function (opsi) {
+      rekapOpsi = opsi || { semester: [], kelas: [], mapel: [], id_semester_aktif: '' };
+      isiSelectRekap('rekap-filter-semester', rekapOpsi.semester, 'id_semester',
+        function (s) { return s.tahun_ajaran + ' - ' + s.semester; });
+      isiSelectRekap('rekap-filter-kelas', rekapOpsi.kelas, 'id_kelas', function (k) { return k.nama_kelas; });
+      isiSelectRekap('rekap-filter-mapel', rekapOpsi.mapel, 'id_mapel', function (m) { return m.nama_mapel; });
+
+      const semEl = document.getElementById('rekap-filter-semester');
+      if (semEl && rekapOpsi.id_semester_aktif) semEl.value = rekapOpsi.id_semester_aktif;
+      setRekapLoading(false);
+      muatRekap();
+    })
+    .withFailureHandler(function (err) {
+      setRekapLoading(false);
+      showToast(err.message || 'Gagal memuat opsi rekap.', 'error');
+    })
+    .getOpsiRekap(token);
+}
+
+/**
+ * Isi select dengan opsi "Semua ..." di depan.
+ */
+function isiSelectRekap(id, items, valueKey, labelFn) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const keepPlaceholder = el.options.length > 0 && el.options[0].value === '';
+  while (el.options.length > (keepPlaceholder ? 1 : 0)) {
+    el.remove(keepPlaceholder ? 1 : 0);
+  }
+  (items || []).forEach(function (item) {
+    const opt = document.createElement('option');
+    opt.value = String(item[valueKey] || '');
+    opt.textContent = String(labelFn(item) || '');
+    el.appendChild(opt);
+  });
+}
+
+function resetFilterRekap() {
+  ['rekap-filter-kelas', 'rekap-filter-mapel', 'rekap-filter-dari', 'rekap-filter-sampai'].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = '';
+  });
+  const semEl = document.getElementById('rekap-filter-semester');
+  if (semEl && rekapOpsi && rekapOpsi.id_semester_aktif) semEl.value = rekapOpsi.id_semester_aktif;
+}
+
+function bacaFilterRekap() {
+  function nilai(id) {
+    const el = document.getElementById(id);
+    return el ? String(el.value || '').trim() : '';
+  }
+  return {
+    id_semester: nilai('rekap-filter-semester'),
+    id_kelas: nilai('rekap-filter-kelas'),
+    id_mapel: nilai('rekap-filter-mapel'),
+    tanggal_dari: nilai('rekap-filter-dari'),
+    tanggal_sampai: nilai('rekap-filter-sampai')
+  };
+}
+
+function muatRekap() {
+  const token = getStoredToken();
+  if (!token) return;
+  if (typeof google === 'undefined' || !google.script || !google.script.run) return;
+
+  const filter = bacaFilterRekap();
+  setRekapLoading(true);
+  const runner = google.script.run
+    .withSuccessHandler(function (hasil) {
+      setRekapLoading(false);
+      renderRekap(hasil || { rows: [], ringkasan: {} });
+    })
+    .withFailureHandler(function (err) {
+      setRekapLoading(false);
+      showToast(err.message || 'Gagal memuat rekap.', 'error');
+    });
+
+  if (rekapRole === 'Siswa') runner.getRekapSiswa(token, filter);
+  else if (rekapRole === 'Guru') runner.getRekapGuru(token, filter);
+  else runner.getRekapAdmin(token, filter);
+}
+
+function setRekapLoading(isLoading) {
+  const loadingEl = document.getElementById('rekap-loading');
+  const btn = document.getElementById('btn-muat-rekap');
+  if (loadingEl) loadingEl.style.display = isLoading ? 'block' : 'none';
+  if (btn) btn.disabled = isLoading;
+}
+
+/**
+ * Render ringkasan + tabel; semua teks lewat textContent.
+ */
+function renderRekap(hasil) {
+  const rows = hasil.rows || [];
+  const ringkasan = hasil.ringkasan || {};
+
+  document.getElementById('rekap-total-hadir').textContent = String(ringkasan.hadir || 0);
+  document.getElementById('rekap-total-izin').textContent = String(ringkasan.izin || 0);
+  document.getElementById('rekap-total-sakit').textContent = String(ringkasan.sakit || 0);
+  document.getElementById('rekap-total-alpa').textContent = String(ringkasan.alpa || 0);
+  document.getElementById('rekap-total-persen').textContent = String(ringkasan.persen || '-');
+
+  const summaryEl = document.getElementById('rekap-summary');
+  if (summaryEl) summaryEl.style.display = 'flex';
+
+  const emptyEl = document.getElementById('rekap-empty');
+  const tableEl = document.getElementById('rekap-table-container');
+  const headEl = document.getElementById('rekap-table-head');
+  const bodyEl = document.getElementById('rekap-table-body');
+  if (!headEl || !bodyEl || !tableEl || !emptyEl) return;
+
+  headEl.innerHTML = '';
+  bodyEl.innerHTML = '';
+
+  if (rows.length === 0) {
+    tableEl.style.display = 'none';
+    emptyEl.style.display = 'block';
+    return;
+  }
+  emptyEl.style.display = 'none';
+  tableEl.style.display = 'block';
+
+  const kolom = rekapRole === 'Siswa'
+    ? ['Mata Pelajaran', 'Hadir', 'Izin', 'Sakit', 'Alpa', 'Total', '% Hadir']
+    : ['Kelas', 'Mata Pelajaran', 'Hadir', 'Izin', 'Sakit', 'Alpa', 'Total', '% Hadir'];
+
+  const headRow = document.createElement('tr');
+  kolom.forEach(function (label) {
+    const th = document.createElement('th');
+    th.scope = 'col';
+    th.textContent = label;
+    headRow.appendChild(th);
+  });
+  headEl.appendChild(headRow);
+
+  rows.forEach(function (r) {
+    const tr = document.createElement('tr');
+    const sel = rekapRole === 'Siswa'
+      ? [r.nama_mapel, r.hadir, r.izin, r.sakit, r.alpa, r.total, r.persen]
+      : [r.nama_kelas, r.nama_mapel, r.hadir, r.izin, r.sakit, r.alpa, r.total, r.persen];
+    sel.forEach(function (val, i) {
+      const td = document.createElement('td');
+      td.textContent = String(val === null || val === undefined ? '' : val);
+      if (i >= 1) td.style.textAlign = 'right';
+      tr.appendChild(td);
+    });
+    bodyEl.appendChild(tr);
+  });
+}
+
+function eksporRekapExcel() {
+  const token = getStoredToken();
+  const btn = document.getElementById('btn-ekspor-rekap');
+  if (!token) return;
+  if (typeof google === 'undefined' || !google.script || !google.script.run) return;
+
+  if (btn) btn.disabled = true;
+  google.script.run
+    .withSuccessHandler(function (res) {
+      if (btn) btn.disabled = false;
+      unduhBerkasRekap(res);
+      showToast('Ekspor selesai: ' + res.filename, 'success');
+    })
+    .withFailureHandler(function (err) {
+      if (btn) btn.disabled = false;
+      showToast(err.message || 'Gagal mengekspor rekap.', 'error');
+    })
+    .exportRekapExcel(token, bacaFilterRekap());
+}
+
+function unduhBerkasRekap(res) {
+  const binary = atob(String(res.base64 || ''));
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+  const blob = new Blob([bytes], { type: res.mime || 'application/octet-stream' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = res.filename || 'rekap.xlsx';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+}
+</script>

@@ -1,0 +1,912 @@
+<!-- ====================================================================
+     PAGE MASTER: DATA MASTER SEKOLAH (data-page="master-siswa")
+     Mengelola Siswa, Guru, Kelas, dan Mapel dalam satu halaman konfiguratif
+     ==================================================================== -->
+<section class="page" id="page-master-siswa" data-page="master-siswa" hidden>
+  <div class="page-header">
+    <div>
+      <h2 class="page-title" id="master-page-title">Data Master Siswa</h2>
+      <p class="page-subtitle" id="master-page-subtitle">Kelola data peserta didik, kelas, dan status kartu kontrol</p>
+    </div>
+    <div style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
+      <button type="button" class="btn btn-outline" onclick="navigateTo('import-data')" title="Import Data Paste">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+        <span>Import Data</span>
+      </button>
+      <button type="button" class="btn btn-primary" id="btn-master-add" onclick="openMasterFormModal('add')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        <span id="btn-master-add-label">Tambah Siswa</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Segmented Tabs untuk Beralih Entitas Master -->
+  <div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-4); overflow-x: auto; padding-bottom: var(--space-1);">
+    <button type="button" class="btn btn-primary btn-sm" id="tab-master-Siswa" onclick="switchMasterEntity('Siswa')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+      </svg>
+      Siswa
+    </button>
+    <button type="button" class="btn btn-secondary btn-sm" id="tab-master-Guru" onclick="switchMasterEntity('Guru')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+        <circle cx="12" cy="7" r="4" />
+      </svg>
+      Guru
+    </button>
+    <button type="button" class="btn btn-secondary btn-sm" id="tab-master-Kelas" onclick="switchMasterEntity('Kelas')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+        <path d="M9 3v18" />
+      </svg>
+      Kelas
+    </button>
+    <button type="button" class="btn btn-secondary btn-sm" id="tab-master-Mapel" onclick="switchMasterEntity('Mapel')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+      </svg>
+      Mata Pelajaran
+    </button>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <!-- Filter Bar & Search -->
+      <div class="form-row" style="margin-bottom: var(--space-4); display: flex; gap: var(--space-3); flex-wrap: wrap;">
+        <div class="form-group" style="flex: 2; min-width: 220px; margin-bottom: 0;">
+          <input type="text" id="master-search-input" class="form-control"
+            placeholder="Cari berdasarkan NIS / NIP / ID / Nama..." oninput="handleMasterSearch()">
+        </div>
+        <div class="form-group" id="group-filter-kelas" style="flex: 1; min-width: 160px; margin-bottom: 0;">
+          <select id="master-filter-kelas" class="form-select" onchange="handleMasterSearch()">
+            <option value="">Semua Kelas</option>
+          </select>
+        </div>
+        <div style="display: flex; align-items: center;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="refreshCurrentMaster()" title="Muat Ulang Data">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10" />
+              <polyline points="1 20 1 14 7 14" />
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabel Responsif -->
+      <div class="table-container">
+        <table class="table" id="table-master">
+          <thead id="master-table-head">
+            <!-- Header tabel dinamis via JS -->
+          </thead>
+          <tbody id="master-table-body" data-slot="table-body">
+            <tr>
+              <td colspan="6" style="text-align: center; padding: var(--space-6); color: var(--text-muted);">
+                Memuat data master...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3);">
+        <span class="text-sm text-muted" id="master-count-info">Menampilkan 0 data</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====================================================================
+     MODAL MASTER: TAMBAH / EDIT ENTITAS
+     ==================================================================== -->
+<div class="modal-backdrop" id="modal-master-form" role="dialog" aria-modal="true" aria-labelledby="modal-master-form-title" hidden>
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3 class="card-title" id="modal-master-form-title">Form Data Master</h3>
+      <button type="button" class="btn-close" onclick="closeModal('modal-master-form')" aria-label="Tutup">&times;</button>
+    </div>
+    <form id="form-master-entity" onsubmit="event.preventDefault(); submitMasterForm();">
+      <div class="modal-body">
+        <div id="master-form-alert" data-slot="alert-container"></div>
+
+        <!-- Input Kunci (NIS / NIP / ID Kelas / ID Mapel) -->
+        <div class="form-group" id="fg-master-key">
+          <label class="form-label" for="input-master-key" id="lbl-master-key">Kode / NIS / NIP</label>
+          <input type="text" id="input-master-key" class="form-control" required>
+          <div class="form-help" id="help-master-key">Kode unik sebagai pengenal data.</div>
+        </div>
+
+        <!-- Input Nama (Nama Siswa / Guru / Kelas / Mapel) -->
+        <div class="form-group" id="fg-master-name">
+          <label class="form-label" for="input-master-name" id="lbl-master-name">Nama Lengkap</label>
+          <input type="text" id="input-master-name" class="form-control" required>
+        </div>
+
+        <!-- Khusus Siswa: Pilihan Kelas -->
+        <div class="form-group" id="fg-master-kelas" style="display: none;">
+          <label class="form-label" for="select-master-kelas">Kelas</label>
+          <select id="select-master-kelas" class="form-select">
+            <option value="">Pilih Kelas</option>
+          </select>
+        </div>
+
+        <!-- Khusus Siswa: Checkbox Kartu Kontrol (Keputusan: default 'Tidak') -->
+        <div class="form-group" id="fg-master-kartu-kontrol" style="display: none;">
+          <label style="display: flex; align-items: center; gap: var(--space-2); cursor: pointer;">
+            <input type="checkbox" id="check-master-kartu-kontrol" value="Ya" style="width: 18px; height: 18px;">
+            <span class="form-label" style="margin-bottom: 0;">Siswa Pemegang Kartu Kontrol (Prioritas)</span>
+          </label>
+          <div class="form-help">Siswa kartu kontrol dapat langsung mengunggah bukti surat sakit saat pengajuan.</div>
+        </div>
+
+        <!-- Khusus Guru/Siswa saat Edit: Status Akun -->
+        <div class="form-group" id="fg-master-status-akun" style="display: none;">
+          <label style="display: flex; align-items: center; gap: var(--space-2); cursor: pointer;">
+            <input type="checkbox" id="check-master-akun-aktif" value="true" style="width: 18px; height: 18px;">
+            <span class="form-label" style="margin-bottom: 0;">Akun Login Aktif</span>
+          </label>
+          <div class="form-help">Hapus centang untuk menonaktifkan akses login pengguna ini.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-master-form')">Batal</button>
+        <button type="submit" class="btn btn-primary" id="btn-master-save">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+            <polyline points="17 21 17 13 7 13 7 21" />
+            <polyline points="7 3 7 8 15 8" />
+          </svg>
+          Simpan Data
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ====================================================================
+     MODAL KONFIRMASI HAPUS
+     ==================================================================== -->
+<div class="modal-backdrop" id="modal-confirm-delete" role="dialog" aria-modal="true" aria-labelledby="modal-del-title" hidden>
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3 class="card-title" id="modal-del-title">Konfirmasi Penghapusan</h3>
+      <button type="button" class="btn-close" onclick="closeModal('modal-confirm-delete')" aria-label="Tutup">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p id="del-confirm-message" style="margin-bottom: var(--space-2);">Apakah Anda yakin ingin menghapus data ini?</p>
+      <div class="alert alert-danger" style="margin-bottom: 0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0;">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+        <span class="text-sm">Tindakan ini tidak dapat dibatalkan. Jika entitas masih memiliki relasi aktif (Jadwal/Presensi/Izin), penghapusan akan ditolak server.</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="closeModal('modal-confirm-delete')">Batal</button>
+      <button type="button" class="btn btn-danger" id="btn-confirm-delete-action" onclick="executeDeleteEntity()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3 6 5 6 21 6" />
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+        </svg>
+        Hapus Sekarang
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================================
+     MODAL KONFIRMASI RESET PASSWORD
+     ==================================================================== -->
+<div class="modal-backdrop" id="modal-confirm-reset" role="dialog" aria-modal="true" aria-labelledby="modal-reset-title" hidden>
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3 class="card-title" id="modal-reset-title">Reset Password Akun</h3>
+      <button type="button" class="btn-close" onclick="closeModal('modal-confirm-reset')" aria-label="Tutup">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p id="reset-confirm-message" style="margin-bottom: var(--space-3);">
+        Password akun pengguna akan direset kembali ke nilai awal (NIS/NIP).
+      </p>
+      <div class="alert alert-info" style="margin-bottom: 0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0;">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="16" x2="12" y2="12" />
+          <line x1="12" y1="8" x2="12.01" y2="8" />
+        </svg>
+        <span class="text-sm">Pengguna akan diwajibkan membuat password baru saat login berikutnya.</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="closeModal('modal-confirm-reset')">Batal</button>
+      <button type="button" class="btn btn-primary" id="btn-confirm-reset-action" onclick="executeResetPassword()">
+        Reset Password
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+/**
+ * Logika Antarmuka Data Master (Ponytail Principle: 1 mesin UI dinamis untuk 4 entitas)
+ */
+let currentMasterEntity = 'Siswa';
+let masterDataCache = [];
+let masterClassesList = [];
+let masterFormMode = 'add';
+let pendingDeleteKey = null;
+let pendingResetKey = null;
+
+// Metadata konfigurasi form & label tiap entitas
+const MASTER_UI_META = {
+  Siswa: {
+    title: 'Data Master Siswa',
+    subtitle: 'Kelola data peserta didik, kelas, dan status kartu kontrol',
+    addLabel: 'Tambah Siswa',
+    keyLabel: 'Nomor Induk Siswa (NIS)',
+    keyHelp: 'NIS unik siswa (contoh: 1001). Digunakan sebagai username login awal.',
+    nameLabel: 'Nama Lengkap Siswa'
+  },
+  Guru: {
+    title: 'Data Master Guru',
+    subtitle: 'Kelola daftar guru dan staf pengajar',
+    addLabel: 'Tambah Guru',
+    keyLabel: 'Nomor Induk Pegawai (NIP)',
+    keyHelp: 'NIP unik guru (contoh: 19820512...). Digunakan sebagai username login awal.',
+    nameLabel: 'Nama Lengkap Guru (beserta gelar)'
+  },
+  Kelas: {
+    title: 'Data Master Kelas',
+    subtitle: 'Kelola jenjang dan rombongan belajar',
+    addLabel: 'Tambah Kelas',
+    keyLabel: 'ID / Kode Kelas',
+    keyHelp: 'Kode kelas (contoh: X-MIPA-1, XI-IPS-2)',
+    nameLabel: 'Nama Kelas'
+  },
+  Mapel: {
+    title: 'Data Master Mata Pelajaran',
+    subtitle: 'Kelola daftar mata pelajaran kurikulum',
+    addLabel: 'Tambah Mapel',
+    keyLabel: 'ID / Kode Mapel',
+    keyHelp: 'Kode mata pelajaran (contoh: MAT-10, BIO-11)',
+    nameLabel: 'Nama Mata Pelajaran'
+  }
+};
+
+/**
+ * Inisialisasi halaman master saat dikunjungi
+ */
+function initMasterPage() {
+  switchMasterEntity(currentMasterEntity || 'Siswa');
+}
+
+/**
+ * Berpindah tab entitas master (Siswa, Guru, Kelas, Mapel)
+ */
+function switchMasterEntity(entity) {
+  currentMasterEntity = entity;
+
+  // Update styling tombol tab
+  ['Siswa', 'Guru', 'Kelas', 'Mapel'].forEach(e => {
+    const btn = document.getElementById(`tab-master-${e}`);
+    if (btn) {
+      if (e === entity) {
+        btn.classList.add('btn-primary');
+        btn.classList.remove('btn-secondary');
+      } else {
+        btn.classList.add('btn-secondary');
+        btn.classList.remove('btn-primary');
+      }
+    }
+  });
+
+  // Update judul halaman dan tombol tambah
+  const meta = MASTER_UI_META[entity] || MASTER_UI_META.Siswa;
+  const titleEl = document.getElementById('master-page-title');
+  const subEl = document.getElementById('master-page-subtitle');
+  const addBtnLabel = document.getElementById('btn-master-add-label');
+  const filterKelasGroup = document.getElementById('group-filter-kelas');
+  const searchInput = document.getElementById('master-search-input');
+
+  if (titleEl) titleEl.textContent = meta.title;
+  if (subEl) subEl.textContent = meta.subtitle;
+  if (addBtnLabel) addBtnLabel.textContent = meta.addLabel;
+  if (searchInput) searchInput.value = '';
+
+  // Filter kelas hanya tampil pada Siswa
+  if (filterKelasGroup) {
+    filterKelasGroup.style.display = (entity === 'Siswa') ? 'block' : 'none';
+  }
+
+  loadMasterData(entity);
+}
+
+/**
+ * Memuat data master dari server via listEntity(token, entity)
+ */
+function loadMasterData(entity) {
+  const token = getStoredToken();
+  const tbody = document.getElementById('master-table-body');
+  renderTableHeader(entity);
+
+  if (tbody) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" style="text-align: center; padding: var(--space-6); color: var(--text-muted);">
+          <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+          Memuat data ${entity}...
+        </td>
+      </tr>
+    `;
+  }
+
+  if (typeof google === 'undefined' || !google.script || !google.script.run) {
+    // Mode mockup untuk preview lokal
+    setTimeout(() => {
+      masterDataCache = getMockMasterData(entity);
+      renderTableRows(masterDataCache);
+    }, 200);
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler((res) => {
+      masterDataCache = res.items || [];
+      if (res.extra && res.extra.classes) {
+        masterClassesList = res.extra.classes;
+        populateClassSelectOptions(masterClassesList);
+      }
+      renderTableRows(masterDataCache);
+    })
+    .withFailureHandler((err) => {
+      if (tbody) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" style="text-align: center; padding: var(--space-6); color: var(--color-alpa);">
+              Gagal memuat data: ${err.message || 'Terjadi kesalahan pada server'}
+            </td>
+          </tr>
+        `;
+      }
+      showToast('Gagal memuat data master: ' + err.message, 'danger');
+    })
+    .listEntity(token, entity);
+}
+
+function refreshCurrentMaster() {
+  loadMasterData(currentMasterEntity);
+}
+
+/**
+ * Mengisi opsi dropdown kelas
+ */
+function populateClassSelectOptions(classes) {
+  const filterSelect = document.getElementById('master-filter-kelas');
+  const formSelect = document.getElementById('select-master-kelas');
+
+  if (filterSelect) {
+    filterSelect.innerHTML = '<option value="">Semua Kelas</option>';
+    classes.forEach(c => {
+      filterSelect.innerHTML += `<option value="${escapeHtml(c.id_kelas)}">${escapeHtml(c.nama_kelas || c.id_kelas)}</option>`;
+    });
+  }
+
+  if (formSelect) {
+    formSelect.innerHTML = '<option value="">Pilih Kelas</option>';
+    classes.forEach(c => {
+      formSelect.innerHTML += `<option value="${escapeHtml(c.id_kelas)}">${escapeHtml(c.nama_kelas || c.id_kelas)}</option>`;
+    });
+  }
+}
+
+/**
+ * Render Header Tabel sesuai entitas aktif
+ */
+function renderTableHeader(entity) {
+  const thead = document.getElementById('master-table-head');
+  if (!thead) return;
+
+  if (entity === 'Siswa') {
+    thead.innerHTML = `
+      <tr>
+        <th style="width: 120px;">NIS</th>
+        <th>Nama Siswa</th>
+        <th style="width: 140px;">Kelas</th>
+        <th style="width: 140px;">Kartu Kontrol</th>
+        <th style="width: 120px;">Status Akun</th>
+        <th style="width: 170px; text-align: right;">Aksi</th>
+      </tr>
+    `;
+  } else if (entity === 'Guru') {
+    thead.innerHTML = `
+      <tr>
+        <th style="width: 180px;">NIP</th>
+        <th>Nama Guru</th>
+        <th style="width: 140px;">Status Akun</th>
+        <th style="width: 170px; text-align: right;">Aksi</th>
+      </tr>
+    `;
+  } else if (entity === 'Kelas') {
+    thead.innerHTML = `
+      <tr>
+        <th style="width: 180px;">ID / Kode Kelas</th>
+        <th>Nama Kelas</th>
+        <th style="width: 140px; text-align: right;">Aksi</th>
+      </tr>
+    `;
+  } else if (entity === 'Mapel') {
+    thead.innerHTML = `
+      <tr>
+        <th style="width: 180px;">ID / Kode Mapel</th>
+        <th>Nama Mata Pelajaran</th>
+        <th style="width: 140px; text-align: right;">Aksi</th>
+      </tr>
+    `;
+  }
+}
+
+/**
+ * Render Baris Tabel
+ */
+function renderTableRows(items) {
+  const tbody = document.getElementById('master-table-body');
+  const countInfo = document.getElementById('master-count-info');
+  if (!tbody) return;
+
+  if (countInfo) {
+    countInfo.textContent = `Menampilkan ${items.length} data ${currentMasterEntity}`;
+  }
+
+  if (!items || items.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" style="text-align: center; padding: var(--space-6); color: var(--text-muted);">
+          Tidak ada data ${currentMasterEntity} yang ditemukan.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  let html = '';
+  items.forEach((item, index) => {
+    if (currentMasterEntity === 'Siswa') {
+      const isKK = item.kartu_kontrol === 'Ya';
+      const kkBadge = isKK
+        ? `<span class="badge badge-hadir">Ya (Prioritas)</span>`
+        : `<span class="text-muted">Tidak</span>`;
+
+      const isAktif = item._account ? item._account.aktif : true;
+      const akunBadge = isAktif
+        ? `<span class="badge badge-hadir">Aktif</span>`
+        : `<span class="badge badge-alpa">Nonaktif</span>`;
+
+      const safeKey = escapeHtml(item.nis);
+      const safeName = escapeHtml(item.nama);
+      const safeKelas = escapeHtml(item._nama_kelas || item.id_kelas);
+
+      html += `
+        <tr>
+          <td><strong>${safeKey}</strong></td>
+          <td>${safeName}</td>
+          <td>${safeKelas}</td>
+          <td>${kkBadge}</td>
+          <td>${akunBadge}</td>
+          <td style="text-align: right; white-space: nowrap;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="openMasterFormModal('edit', ${index})" title="Edit Data">Edit</button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="confirmResetPassword('${safeKey}')" title="Reset Password ke NIS">Reset</button>
+            <button type="button" class="btn btn-outline btn-sm" style="color: var(--color-alpa); border-color: var(--border-alpa);" onclick="confirmDeleteEntity('${safeKey}', '${safeName}')" title="Hapus Siswa">Hapus</button>
+          </td>
+        </tr>
+      `;
+
+    } else if (currentMasterEntity === 'Guru') {
+      const isAktif = item._account ? item._account.aktif : true;
+      const akunBadge = isAktif
+        ? `<span class="badge badge-hadir">Aktif</span>`
+        : `<span class="badge badge-alpa">Nonaktif</span>`;
+
+      const safeKey = escapeHtml(item.nip);
+      const safeName = escapeHtml(item.nama);
+
+      html += `
+        <tr>
+          <td><strong>${safeKey}</strong></td>
+          <td>${safeName}</td>
+          <td>${akunBadge}</td>
+          <td style="text-align: right; white-space: nowrap;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="openMasterFormModal('edit', ${index})" title="Edit Data">Edit</button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="confirmResetPassword('${safeKey}')" title="Reset Password ke NIP">Reset</button>
+            <button type="button" class="btn btn-outline btn-sm" style="color: var(--color-alpa); border-color: var(--border-alpa);" onclick="confirmDeleteEntity('${safeKey}', '${safeName}')" title="Hapus Guru">Hapus</button>
+          </td>
+        </tr>
+      `;
+
+    } else if (currentMasterEntity === 'Kelas') {
+      const safeKey = escapeHtml(item.id_kelas);
+      const safeName = escapeHtml(item.nama_kelas);
+
+      html += `
+        <tr>
+          <td><strong>${safeKey}</strong></td>
+          <td>${safeName}</td>
+          <td style="text-align: right; white-space: nowrap;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="openMasterFormModal('edit', ${index})" title="Edit Data">Edit</button>
+            <button type="button" class="btn btn-outline btn-sm" style="color: var(--color-alpa); border-color: var(--border-alpa);" onclick="confirmDeleteEntity('${safeKey}', '${safeName}')" title="Hapus Kelas">Hapus</button>
+          </td>
+        </tr>
+      `;
+
+    } else if (currentMasterEntity === 'Mapel') {
+      const safeKey = escapeHtml(item.id_mapel);
+      const safeName = escapeHtml(item.nama_mapel);
+
+      html += `
+        <tr>
+          <td><strong>${safeKey}</strong></td>
+          <td>${safeName}</td>
+          <td style="text-align: right; white-space: nowrap;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="openMasterFormModal('edit', ${index})" title="Edit Data">Edit</button>
+            <button type="button" class="btn btn-outline btn-sm" style="color: var(--color-alpa); border-color: var(--border-alpa);" onclick="confirmDeleteEntity('${safeKey}', '${safeName}')" title="Hapus Mapel">Hapus</button>
+          </td>
+        </tr>
+      `;
+    }
+  });
+
+  tbody.innerHTML = html;
+}
+
+/**
+ * Filter & Pencarian real-time pada memori klien
+ */
+function handleMasterSearch() {
+  const query = (document.getElementById('master-search-input')?.value || '').toLowerCase().trim();
+  const kelasFilter = (document.getElementById('master-filter-kelas')?.value || '').trim();
+
+  const filtered = masterDataCache.filter(item => {
+    let matchQuery = true;
+    let matchKelas = true;
+
+    if (query) {
+      if (currentMasterEntity === 'Siswa') {
+        matchQuery = String(item.nis || '').toLowerCase().includes(query) ||
+                     String(item.nama || '').toLowerCase().includes(query);
+      } else if (currentMasterEntity === 'Guru') {
+        matchQuery = String(item.nip || '').toLowerCase().includes(query) ||
+                     String(item.nama || '').toLowerCase().includes(query);
+      } else if (currentMasterEntity === 'Kelas') {
+        matchQuery = String(item.id_kelas || '').toLowerCase().includes(query) ||
+                     String(item.nama_kelas || '').toLowerCase().includes(query);
+      } else if (currentMasterEntity === 'Mapel') {
+        matchQuery = String(item.id_mapel || '').toLowerCase().includes(query) ||
+                     String(item.nama_mapel || '').toLowerCase().includes(query);
+      }
+    }
+
+    if (currentMasterEntity === 'Siswa' && kelasFilter) {
+      matchKelas = String(item.id_kelas || '').trim() === kelasFilter;
+    }
+
+    return matchQuery && matchKelas;
+  });
+
+  renderTableRows(filtered);
+}
+
+/**
+ * Membuka Modal Tambah / Edit Entitas Master
+ */
+function openMasterFormModal(mode, itemIndex = null) {
+  masterFormMode = mode;
+  const meta = MASTER_UI_META[currentMasterEntity] || MASTER_UI_META.Siswa;
+
+  const modal = document.getElementById('modal-master-form');
+  const titleEl = document.getElementById('modal-master-form-title');
+  const alertEl = document.getElementById('master-form-alert');
+  const form = document.getElementById('form-master-entity');
+
+  const lblKey = document.getElementById('lbl-master-key');
+  const inputKey = document.getElementById('input-master-key');
+  const helpKey = document.getElementById('help-master-key');
+  const lblName = document.getElementById('lbl-master-name');
+  const inputName = document.getElementById('input-master-name');
+
+  const fgKelas = document.getElementById('fg-master-kelas');
+  const selectKelas = document.getElementById('select-master-kelas');
+  const fgKK = document.getElementById('fg-master-kartu-kontrol');
+  const checkKK = document.getElementById('check-master-kartu-kontrol');
+  const fgAkun = document.getElementById('fg-master-status-akun');
+  const checkAkun = document.getElementById('check-master-akun-aktif');
+
+  if (form) form.reset();
+  if (alertEl) alertEl.innerHTML = '';
+
+  if (lblKey) lblKey.textContent = meta.keyLabel;
+  if (helpKey) helpKey.textContent = meta.keyHelp;
+  if (lblName) lblName.textContent = meta.nameLabel;
+
+  // Sesuaikan tampilan form khusus Siswa
+  if (fgKelas) fgKelas.style.display = (currentMasterEntity === 'Siswa') ? 'block' : 'none';
+  if (selectKelas) selectKelas.required = (currentMasterEntity === 'Siswa');
+  if (fgKK) fgKK.style.display = (currentMasterEntity === 'Siswa') ? 'block' : 'none';
+
+  // Sesuaikan status akun (hanya pada mode edit untuk Guru & Siswa)
+  const hasAccount = (currentMasterEntity === 'Siswa' || currentMasterEntity === 'Guru');
+  if (fgAkun) fgAkun.style.display = (mode === 'edit' && hasAccount) ? 'block' : 'none';
+
+  if (mode === 'add') {
+    if (titleEl) titleEl.textContent = `Tambah ${currentMasterEntity}`;
+    if (inputKey) {
+      inputKey.readOnly = false;
+      inputKey.style.backgroundColor = '';
+    }
+    if (checkKK) checkKK.checked = false; // Default Tidak
+    if (checkAkun) checkAkun.checked = true;
+  } else {
+    // Mode EDIT
+    if (titleEl) titleEl.textContent = `Edit ${currentMasterEntity}`;
+    if (inputKey) {
+      inputKey.readOnly = true;
+      inputKey.style.backgroundColor = 'var(--surface-muted)';
+    }
+
+    const item = masterDataCache[itemIndex];
+    if (item) {
+      if (currentMasterEntity === 'Siswa') {
+        if (inputKey) inputKey.value = item.nis || '';
+        if (inputName) inputName.value = item.nama || '';
+        if (selectKelas) selectKelas.value = item.id_kelas || '';
+        if (checkKK) checkKK.checked = (item.kartu_kontrol === 'Ya');
+        if (checkAkun) checkAkun.checked = item._account ? item._account.aktif : true;
+      } else if (currentMasterEntity === 'Guru') {
+        if (inputKey) inputKey.value = item.nip || '';
+        if (inputName) inputName.value = item.nama || '';
+        if (checkAkun) checkAkun.checked = item._account ? item._account.aktif : true;
+      } else if (currentMasterEntity === 'Kelas') {
+        if (inputKey) inputKey.value = item.id_kelas || '';
+        if (inputName) inputName.value = item.nama_kelas || '';
+      } else if (currentMasterEntity === 'Mapel') {
+        if (inputKey) inputKey.value = item.id_mapel || '';
+        if (inputName) inputName.value = item.nama_mapel || '';
+      }
+    }
+  }
+
+  if (modal) {
+    modal.removeAttribute('hidden');
+    modal.classList.add('open');
+    if (mode === 'add' && inputKey) inputKey.focus();
+    else if (mode === 'edit' && inputName) inputName.focus();
+  }
+}
+
+/**
+ * Submit Form Tambah / Edit Entitas Master
+ */
+function submitMasterForm() {
+  const token = getStoredToken();
+  const alertEl = document.getElementById('master-form-alert');
+  const btnSave = document.getElementById('btn-master-save');
+  const inputKey = document.getElementById('input-master-key')?.value.trim();
+  const inputName = document.getElementById('input-master-name')?.value.trim();
+
+  if (!inputKey || !inputName) {
+    if (alertEl) alertEl.innerHTML = `<div class="alert alert-danger">Kunci dan nama wajib diisi.</div>`;
+    return;
+  }
+
+  const payload = {};
+  if (currentMasterEntity === 'Siswa') {
+    const idKelas = document.getElementById('select-master-kelas')?.value;
+    const isKK = document.getElementById('check-master-kartu-kontrol')?.checked;
+    if (!idKelas) {
+      if (alertEl) alertEl.innerHTML = `<div class="alert alert-danger">Kelas wajib dipilih untuk data Siswa.</div>`;
+      return;
+    }
+    payload.nis = inputKey;
+    payload.nama = inputName;
+    payload.id_kelas = idKelas;
+    payload.kartu_kontrol = isKK ? 'Ya' : 'Tidak';
+    if (masterFormMode === 'edit') {
+      payload.aktif = document.getElementById('check-master-akun-aktif')?.checked;
+    }
+  } else if (currentMasterEntity === 'Guru') {
+    payload.nip = inputKey;
+    payload.nama = inputName;
+    if (masterFormMode === 'edit') {
+      payload.aktif = document.getElementById('check-master-akun-aktif')?.checked;
+    }
+  } else if (currentMasterEntity === 'Kelas') {
+    payload.id_kelas = inputKey;
+    payload.nama_kelas = inputName;
+  } else if (currentMasterEntity === 'Mapel') {
+    payload.id_mapel = inputKey;
+    payload.nama_mapel = inputName;
+  }
+
+  setBtnLoading(btnSave, true, 'Menyimpan...');
+
+  if (typeof google === 'undefined' || !google.script || !google.script.run) {
+    setTimeout(() => {
+      setBtnLoading(btnSave, false, 'Simpan Data');
+      closeModal('modal-master-form');
+      showToast(`Data ${currentMasterEntity} berhasil disimpan (mock)`, 'success');
+    }, 400);
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler((res) => {
+      setBtnLoading(btnSave, false, 'Simpan Data');
+      closeModal('modal-master-form');
+      showToast(res.message || `Data ${currentMasterEntity} berhasil disimpan!`, 'success');
+      loadMasterData(currentMasterEntity);
+    })
+    .withFailureHandler((err) => {
+      setBtnLoading(btnSave, false, 'Simpan Data');
+      if (alertEl) {
+        alertEl.innerHTML = `<div class="alert alert-danger">${escapeHtml(err.message || 'Gagal menyimpan data')}</div>`;
+      }
+    })
+    .saveEntity(token, currentMasterEntity, payload, masterFormMode);
+}
+
+/**
+ * Konfirmasi Hapus Data Master
+ */
+function confirmDeleteEntity(key, name) {
+  pendingDeleteKey = key;
+  const modal = document.getElementById('modal-confirm-delete');
+  const msgEl = document.getElementById('del-confirm-message');
+
+  if (msgEl) {
+    msgEl.innerHTML = `Apakah Anda yakin ingin menghapus <strong>${escapeHtml(currentMasterEntity)}: ${escapeHtml(name)}</strong> (${escapeHtml(key)})?`;
+  }
+
+  if (modal) {
+    modal.removeAttribute('hidden');
+    modal.classList.add('open');
+  }
+}
+
+/**
+ * Eksekusi Hapus Data Master ke Server
+ */
+function executeDeleteEntity() {
+  if (!pendingDeleteKey) return;
+  const token = getStoredToken();
+  const btn = document.getElementById('btn-confirm-delete-action');
+
+  setBtnLoading(btn, true, 'Menghapus...');
+
+  if (typeof google === 'undefined' || !google.script || !google.script.run) {
+    setTimeout(() => {
+      setBtnLoading(btn, false, 'Hapus Sekarang');
+      closeModal('modal-confirm-delete');
+      showToast(`Data ${currentMasterEntity} ${pendingDeleteKey} berhasil dihapus (mock)`, 'info');
+      pendingDeleteKey = null;
+    }, 400);
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler((res) => {
+      setBtnLoading(btn, false, 'Hapus Sekarang');
+      closeModal('modal-confirm-delete');
+      showToast(res.message || `Data ${currentMasterEntity} berhasil dihapus`, 'success');
+      pendingDeleteKey = null;
+      loadMasterData(currentMasterEntity);
+    })
+    .withFailureHandler((err) => {
+      setBtnLoading(btn, false, 'Hapus Sekarang');
+      closeModal('modal-confirm-delete');
+      showToast('Gagal menghapus: ' + (err.message || 'Terjadi kesalahan'), 'danger');
+      pendingDeleteKey = null;
+    })
+    .deleteEntity(token, currentMasterEntity, pendingDeleteKey);
+}
+
+/**
+ * Konfirmasi Reset Password Akun Siswa/Guru
+ */
+function confirmResetPassword(refId) {
+  pendingResetKey = refId;
+  const modal = document.getElementById('modal-confirm-reset');
+  const msgEl = document.getElementById('reset-confirm-message');
+
+  if (msgEl) {
+    msgEl.innerHTML = `Password untuk pengguna dengan NIS/NIP <strong>${escapeHtml(refId)}</strong> akan direset ke password awal (sama dengan NIS/NIP) dan status wajib ganti password disetel ke aktif.`;
+  }
+
+  if (modal) {
+    modal.removeAttribute('hidden');
+    modal.classList.add('open');
+  }
+}
+
+/**
+ * Eksekusi Reset Password ke Server
+ */
+function executeResetPassword() {
+  if (!pendingResetKey) return;
+  const token = getStoredToken();
+  const btn = document.getElementById('btn-confirm-reset-action');
+
+  setBtnLoading(btn, true, 'Mereset...');
+
+  if (typeof google === 'undefined' || !google.script || !google.script.run) {
+    setTimeout(() => {
+      setBtnLoading(btn, false, 'Reset Password');
+      closeModal('modal-confirm-reset');
+      showToast(`Password untuk ${pendingResetKey} berhasil direset (mock)`, 'success');
+      pendingResetKey = null;
+    }, 400);
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler((res) => {
+      setBtnLoading(btn, false, 'Reset Password');
+      closeModal('modal-confirm-reset');
+      showToast(res.message || `Password untuk ${pendingResetKey} berhasil direset`, 'success');
+      pendingResetKey = null;
+      loadMasterData(currentMasterEntity);
+    })
+    .withFailureHandler((err) => {
+      setBtnLoading(btn, false, 'Reset Password');
+      closeModal('modal-confirm-reset');
+      showToast('Gagal reset password: ' + (err.message || 'Terjadi kesalahan'), 'danger');
+      pendingResetKey = null;
+    })
+    .resetPassword(token, pendingResetKey);
+}
+
+/**
+ * Helper modal close
+ */
+function closeModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) {
+    modal.classList.remove('open');
+    modal.setAttribute('hidden', '');
+  }
+}
+
+/**
+ * Data mock untuk pengetesan offline
+ */
+function getMockMasterData(entity) {
+  if (entity === 'Siswa') {
+    return [
+      { nis: '1001', nama: 'Ahmad Dahlan', id_kelas: 'X-MIPA-1', _nama_kelas: 'X-MIPA-1', kartu_kontrol: 'Ya', _account: { aktif: true } },
+      { nis: '1002', nama: 'Budi Setiawan', id_kelas: 'X-MIPA-1', _nama_kelas: 'X-MIPA-1', kartu_kontrol: 'Tidak', _account: { aktif: true } }
+    ];
+  } else if (entity === 'Guru') {
+    return [
+      { nip: '198205122008011003', nama: 'Budi Pratama, S.Pd', _account: { aktif: true } }
+    ];
+  } else if (entity === 'Kelas') {
+    return [
+      { id_kelas: 'X-MIPA-1', nama_kelas: 'X-MIPA-1' },
+      { id_kelas: 'X-MIPA-2', nama_kelas: 'X-MIPA-2' }
+    ];
+  } else if (entity === 'Mapel') {
+    return [
+      { id_mapel: 'MAT-10', nama_mapel: 'Matematika X' }
+    ];
+  }
+  return [];
+}
+</script>
+

@@ -1,0 +1,1658 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aplikasi Presensi Sekolah</title>
+  <?!= include('Style'); ?>
+</head>
+
+<body>
+
+  <!-- ====================================================================
+       PAGE 1: LOGIN (data-page="login")
+       ==================================================================== -->
+  <div id="page-login" class="page active" data-page="login">
+    <div
+      style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: var(--space-4); background-color: var(--surface-alt);">
+      <div class="card" style="width: 100%; max-width: 420px; box-shadow: var(--shadow-lg);">
+        <div class="card-body" style="padding: var(--space-6);">
+          <div style="text-align: center; margin-bottom: var(--space-6);">
+            <div
+              style="width: 56px; height: 56px; margin: 0 auto var(--space-3); background: var(--primary-subtle); color: var(--primary); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center;">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"></path>
+                <path d="M6 6h10"></path>
+                <path d="M6 10h10"></path>
+              </svg>
+            </div>
+            <h1 class="page-title" style="font-size: var(--font-xl);">Aplikasi Presensi</h1>
+            <p class="page-subtitle">Sistem Kehadiran Siswa Berbasis Web</p>
+          </div>
+
+          <div id="login-alert-slot" data-slot="alert-container"></div>
+
+          <form id="form-login" onsubmit="event.preventDefault(); handleLoginSubmit();">
+            <div class="form-group">
+              <label class="form-label" for="login-username">Username (NIP / NIS)</label>
+              <input type="text" id="login-username" class="form-control"
+                placeholder="Contoh: admin / 19800101... / 1001" required value="guru.matematika">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="login-password">Password</label>
+              <input type="password" id="login-password" class="form-control" placeholder="Masukkan password" required
+                value="password123">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block" style="margin-top: var(--space-4);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                <polyline points="10 17 15 12 10 7" />
+                <line x1="15" y1="12" x2="3" y2="12" />
+              </svg>
+              Masuk ke Aplikasi
+            </button>
+          </form>
+        </div>
+        <div class="card-footer" style="justify-content: center;">
+          <span class="text-sm text-muted">Aplikasi Presensi Sekolah &bull; Tahun Ajaran 2026/2027</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       PAGE 2: BASE FRAMEWORK (TOPBAR + SIDEBAR + MAIN AREA)
+       ==================================================================== -->
+  <div id="app-framework" style="display: none;" hidden>
+    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar(false)"></div>
+
+    <aside class="sidebar" id="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-title">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+            <path d="M6 6h10" />
+            <path d="M6 10h10" />
+          </svg>
+          Presensi App
+        </div>
+        <button type="button" class="btn-close" style="display: none;" id="sidebar-close-btn"
+          onclick="toggleSidebar(false)" aria-label="Tutup Menu">&times;</button>
+      </div>
+
+      <nav class="sidebar-nav" id="sidebar-nav-container">
+        <!-- Menu Admin -->
+        <div class="role-menu-section" data-role-section="Admin">
+          <div class="nav-section-title">Menu Admin</div>
+          <button type="button" class="nav-item" data-target="dashboard-admin" onclick="navigateTo('dashboard-admin')">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+            </svg>
+            Dashboard Admin
+          </button>
+          <button type="button" class="nav-item" data-target="master-siswa" onclick="navigateTo('master-siswa')">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            Data Master Siswa
+          </button>
+          <button type="button" class="nav-item" data-target="import-data" onclick="navigateTo('import-data')">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Import Data Paste
+          </button>
+        </div>
+
+        <!-- Menu Guru -->
+        <div class="role-menu-section" data-role-section="Guru">
+          <div class="nav-section-title">Menu Guru</div>
+          <button type="button" class="nav-item" data-target="dashboard-guru" onclick="navigateTo('dashboard-guru')">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+            </svg>
+            Dashboard Guru
+          </button>
+          <button type="button" class="nav-item" data-target="jadwal-guru" onclick="navigateTo('jadwal-guru')">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            Jadwal & Presensi
+          </button>
+          <button type="button" class="nav-item" data-target="persetujuan-guru"
+            onclick="navigateTo('persetujuan-guru')">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <path d="m9 15 2 2 4-4" />
+            </svg>
+            Persetujuan Izin
+          </button>
+        </div>
+
+        <!-- Menu Siswa -->
+        <div class="role-menu-section" data-role-section="Siswa">
+          <div class="nav-section-title">Menu Siswa</div>
+          <button type="button" class="nav-item" data-target="dashboard-siswa" onclick="navigateTo('dashboard-siswa')">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+            </svg>
+            Dashboard Siswa
+          </button>
+          <button type="button" class="nav-item" data-target="pengajuan-siswa" onclick="navigateTo('pengajuan-siswa')">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+            </svg>
+            Pengajuan Sakit/Izin
+          </button>
+        </div>
+
+        <!-- Menu Umum / Rekap -->
+        <div class="nav-section-title">Laporan</div>
+        <button type="button" class="nav-item" data-target="rekap-presensi" onclick="navigateTo('rekap-presensi')">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="20" x2="18" y2="10" />
+            <line x1="12" y1="20" x2="12" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="14" />
+          </svg>
+          Rekap Kehadiran
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-badge">
+          <div class="avatar" id="sidebar-avatar" data-slot="user-avatar">BP</div>
+          <div style="flex: 1; min-width: 0;">
+            <div
+              style="font-size: var(--font-sm); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+              id="sidebar-user-name" data-slot="user-name">Budi Pratama, S.Pd</div>
+            <div style="font-size: var(--font-xs); color: var(--text-muted);" id="sidebar-user-role"
+              data-slot="user-role">Guru Matematika</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main-wrapper">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button type="button" class="btn btn-secondary btn-sm menu-toggle" onclick="toggleSidebar(true)"
+            aria-label="Buka Menu" style="padding: 8px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+          <span class="role-pill" id="topbar-role-badge">GURU</span>
+          <!-- Navigasi Cepat untuk Testing 10 Halaman -->
+          <select id="quick-page-jump" class="form-select"
+            style="min-height: 36px; padding: 4px 10px; font-size: var(--font-xs); width: auto;"
+            onchange="navigateTo(this.value)">
+            <option disabled>-- Uji Cepat 10 Halaman --</option>
+            <option value="login">1. Halaman Login</option>
+            <option value="dashboard-admin">3a. Dashboard Admin</option>
+            <option value="dashboard-guru">3b. Dashboard Guru</option>
+            <option value="dashboard-siswa">3c. Dashboard Siswa</option>
+            <option value="master-siswa">4. Master Data Siswa</option>
+            <option value="import-data">5. Import Data Paste</option>
+            <option value="jadwal-guru">6. Jadwal Hari Ini</option>
+            <option value="form-presensi">7. Form Presensi</option>
+            <option value="pengajuan-siswa">8. Pengajuan Siswa</option>
+            <option value="persetujuan-guru">9. Persetujuan Guru</option>
+            <option value="rekap-presensi">10. Rekap & Ekspor</option>
+          </select>
+        </div>
+        <div class="topbar-right">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="logoutApp()" title="Keluar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            <span style="display: none; @media(min-width: 640px){display:inline;}">Keluar</span>
+          </button>
+        </div>
+      </header>
+
+      <main class="main-content">
+
+        <!-- ==================================================================
+             PAGE 3A: DASHBOARD ADMIN (data-page="dashboard-admin")
+             ================================================================== -->
+        <section class="page" id="page-dashboard-admin" data-page="dashboard-admin" hidden>
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">Dashboard Admin</h2>
+              <p class="page-subtitle">Ringkasan data induk sekolah dan aktivitas presensi hari ini</p>
+            </div>
+            <div>
+              <span class="badge badge-hadir">Semester 2026/2027 Ganjil (Aktif)</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-4" style="margin-bottom: var(--space-6);">
+            <div class="metric-card">
+              <div class="metric-icon-box" style="background: var(--primary-subtle); color: var(--primary);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+              </div>
+              <div class="metric-info">
+                <div class="metric-label">Total Siswa</div>
+                <div class="metric-value" data-slot="metric-siswa">720</div>
+                <div class="metric-sub">Terdaftar di 24 Kelas</div>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon-box" style="background: var(--bg-izin); color: var(--color-izin);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </div>
+              <div class="metric-info">
+                <div class="metric-label">Total Guru</div>
+                <div class="metric-value" data-slot="metric-guru">48</div>
+                <div class="metric-sub">Pengajar Mapel Aktif</div>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon-box" style="background: var(--bg-wait-doc); color: var(--color-wait-doc);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                </svg>
+              </div>
+              <div class="metric-info">
+                <div class="metric-label">Total Kelas</div>
+                <div class="metric-value" data-slot="metric-kelas">24</div>
+                <div class="metric-sub">Tingkat X, XI, XII</div>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon-box" style="background: var(--bg-hadir); color: var(--color-hadir);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+              </div>
+              <div class="metric-info">
+                <div class="metric-label">Kehadiran Hari Ini</div>
+                <div class="metric-value" data-slot="metric-presensi-pct">94.2%</div>
+                <div class="metric-sub">678 Hadir / 720 Siswa</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Ringkasan Status Presensi Hari Ini (Semua Kelas)</h3>
+              <button class="btn btn-secondary btn-sm" onclick="navigateTo('rekap-presensi')">Lihat Rekap
+                Lengkap</button>
+            </div>
+            <div class="card-body">
+              <div class="grid grid-cols-4">
+                <div
+                  style="padding: var(--space-3); border-radius: var(--radius-md); background: var(--bg-hadir); border: 1px solid var(--border-hadir);">
+                  <div style="font-size: var(--font-xs); color: var(--color-hadir); font-weight: 700;">HADIR</div>
+                  <div style="font-size: var(--font-2xl); font-weight: 800; color: var(--color-hadir);">678</div>
+                  <div style="font-size: var(--font-xs); color: var(--color-hadir);">94.2% dari siswa</div>
+                </div>
+                <div
+                  style="padding: var(--space-3); border-radius: var(--radius-md); background: var(--bg-izin); border: 1px solid var(--border-izin);">
+                  <div style="font-size: var(--font-xs); color: var(--color-izin); font-weight: 700;">IZIN</div>
+                  <div style="font-size: var(--font-2xl); font-weight: 800; color: var(--color-izin);">24</div>
+                  <div style="font-size: var(--font-xs); color: var(--color-izin);">Surat orang tua</div>
+                </div>
+                <div
+                  style="padding: var(--space-3); border-radius: var(--radius-md); background: var(--bg-sakit); border: 1px solid var(--border-sakit);">
+                  <div style="font-size: var(--font-xs); color: var(--color-sakit); font-weight: 700;">SAKIT</div>
+                  <div style="font-size: var(--font-2xl); font-weight: 800; color: var(--color-sakit);">12</div>
+                  <div style="font-size: var(--font-xs); color: var(--color-sakit);">Surat dokter</div>
+                </div>
+                <div
+                  style="padding: var(--space-3); border-radius: var(--radius-md); background: var(--bg-alpa); border: 1px solid var(--border-alpa);">
+                  <div style="font-size: var(--font-xs); color: var(--color-alpa); font-weight: 700;">ALPA</div>
+                  <div style="font-size: var(--font-2xl); font-weight: 800; color: var(--color-alpa);">6</div>
+                  <div style="font-size: var(--font-xs); color: var(--color-alpa);">Tanpa keterangan</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 3B: DASHBOARD GURU (data-page="dashboard-guru")
+             ================================================================== -->
+        <section class="page" id="page-dashboard-guru" data-page="dashboard-guru" hidden>
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">Dashboard Guru</h2>
+              <p class="page-subtitle">Selamat datang, Budi Pratama, S.Pd (NIP: 198205122008011003)</p>
+            </div>
+            <div>
+              <button class="btn btn-primary" onclick="navigateTo('jadwal-guru')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+                Jadwal Mengajar Hari Ini
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3" style="margin-bottom: var(--space-6);">
+            <div class="metric-card">
+              <div class="metric-icon-box" style="background: var(--primary-subtle); color: var(--primary);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              </div>
+              <div class="metric-info">
+                <div class="metric-label">Jadwal Hari Ini</div>
+                <div class="metric-value">3 Sesi</div>
+                <div class="metric-sub">Matematika X & XI</div>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon-box" style="background: var(--bg-sakit); color: var(--color-sakit);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              </div>
+              <div class="metric-info">
+                <div class="metric-label">Presensi Belum Diisi</div>
+                <div class="metric-value">2 Sesi</div>
+                <div class="metric-sub">Perlu segera diambil</div>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon-box" style="background: var(--bg-wait-appr); color: var(--color-wait-appr);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                </svg>
+              </div>
+              <div class="metric-info">
+                <div class="metric-label">Pengajuan Izin Masuk</div>
+                <div class="metric-value">2 Siswa</div>
+                <div class="metric-sub">Menunggu persetujuan</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Agenda Mengajar Hari Ini (Senin, 15 Nov 2026)</h3>
+              <button class="btn btn-outline btn-sm" onclick="navigateTo('persetujuan-guru')">Cek Izin Siswa</button>
+            </div>
+            <div class="card-body">
+              <div class="grid grid-cols-3">
+                <div
+                  style="border: 1px solid var(--surface-border); border-radius: var(--radius-md); padding: var(--space-4);">
+                  <div
+                    style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-2);">
+                    <span class="badge badge-sudah"><span class="badge-dot"></span> Sudah Diisi</span>
+                    <span class="text-sm text-muted">07.30 - 09.00</span>
+                  </div>
+                  <h4 style="font-size: var(--font-base); font-weight: 700;">Matematika &bull; X-MIPA-1</h4>
+                  <p class="text-sm text-muted" style="margin-bottom: var(--space-3);">32 Siswa (30 Hadir, 1 Izin, 1
+                    Sakit)</p>
+                  <button class="btn btn-secondary btn-sm btn-block" onclick="navigateTo('form-presensi')">Edit
+                    Presensi</button>
+                </div>
+
+                <div
+                  style="border: 1px solid var(--surface-border); border-radius: var(--radius-md); padding: var(--space-4); border-left: 4px solid var(--primary);">
+                  <div
+                    style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-2);">
+                    <span class="badge badge-belum"><span class="badge-dot"></span> Belum Diisi</span>
+                    <span class="text-sm text-muted">09.15 - 10.45</span>
+                  </div>
+                  <h4 style="font-size: var(--font-base); font-weight: 700;">Fisika &bull; XI-MIPA-2</h4>
+                  <p class="text-sm text-muted" style="margin-bottom: var(--space-3);">32 Siswa (Sedang Berlangsung)</p>
+                  <button class="btn btn-primary btn-sm btn-block" onclick="navigateTo('form-presensi')">Isi Presensi
+                    Sekarang</button>
+                </div>
+
+                <div
+                  style="border: 1px solid var(--surface-border); border-radius: var(--radius-md); padding: var(--space-4);">
+                  <div
+                    style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-2);">
+                    <span class="badge badge-belum"><span class="badge-dot"></span> Belum Diisi</span>
+                    <span class="text-sm text-muted">11.00 - 12.30</span>
+                  </div>
+                  <h4 style="font-size: var(--font-base); font-weight: 700;">Matematika &bull; X-MIPA-2</h4>
+                  <p class="text-sm text-muted" style="margin-bottom: var(--space-3);">30 Siswa</p>
+                  <button class="btn btn-secondary btn-sm btn-block" onclick="navigateTo('form-presensi')">Isi
+                    Nanti</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 3C: DASHBOARD SISWA (data-page="dashboard-siswa")
+             ================================================================== -->
+        <section class="page" id="page-dashboard-siswa" data-page="dashboard-siswa" hidden>
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">Dashboard Siswa</h2>
+              <p class="page-subtitle">Ahmad Dahlan &bull; NIS: 1001 &bull; Kelas X-MIPA-1</p>
+            </div>
+            <div>
+              <button class="btn btn-primary" onclick="navigateTo('pengajuan-siswa')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Ajukan Sakit / Izin
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-4" style="margin-bottom: var(--space-6);">
+            <div class="metric-card">
+              <div class="metric-icon-box" style="background: var(--bg-hadir); color: var(--color-hadir);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+              </div>
+              <div class="metric-info">
+                <div class="metric-label">Kehadiran Total</div>
+                <div class="metric-value">96.0%</div>
+                <div class="metric-sub">Semester Ganjil 2026</div>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon-box" style="background: var(--bg-izin); color: var(--color-izin);">
+                <span style="font-weight: 800; font-size: var(--font-lg);">I</span>
+              </div>
+              <div class="metric-info">
+                <div class="metric-label">Izin</div>
+                <div class="metric-value">2 Kali</div>
+                <div class="metric-sub">Dengan surat izin</div>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon-box" style="background: var(--bg-sakit); color: var(--color-sakit);">
+                <span style="font-weight: 800; font-size: var(--font-lg);">S</span>
+              </div>
+              <div class="metric-info">
+                <div class="metric-label">Sakit</div>
+                <div class="metric-value">1 Kali</div>
+                <div class="metric-sub">Surat dokter diverifikasi</div>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon-box" style="background: var(--bg-alpa); color: var(--color-alpa);">
+                <span style="font-weight: 800; font-size: var(--font-lg);">A</span>
+              </div>
+              <div class="metric-info">
+                <div class="metric-label">Alpa</div>
+                <div class="metric-value">0 Kali</div>
+                <div class="metric-sub">Catatan sangat baik</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Status Pengajuan Terakhir Anda</h3>
+              <button class="btn btn-secondary btn-sm" onclick="navigateTo('pengajuan-siswa')">Riwayat Semua
+                Pengajuan</button>
+            </div>
+            <div class="card-body">
+              <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+                <div
+                  style="padding: var(--space-4); border: 1px solid var(--surface-border); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3);">
+                  <div>
+                    <div style="font-weight: 700; font-size: var(--font-base);">Izin &bull; Matematika (07.30 - 09.00)
+                    </div>
+                    <div class="text-sm text-muted">Tanggal: 15 Nov 2026 &bull; Alasan: Keperluan keluarga mendesak
+                    </div>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: var(--space-2);">
+                    <span class="badge badge-approved"><span class="badge-dot"></span> Disetujui</span>
+                    <span class="text-sm text-muted">oleh Budi Pratama, S.Pd</span>
+                  </div>
+                </div>
+
+                <div
+                  style="padding: var(--space-4); border: 1px solid var(--surface-border); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3);">
+                  <div>
+                    <div style="font-weight: 700; font-size: var(--font-base);">Sakit &bull; Fisika (09.15 - 10.45)
+                    </div>
+                    <div class="text-sm text-muted">Tanggal: 10 Nov 2026 &bull; Alasan: Demam dan flu</div>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: var(--space-2);">
+                    <span class="badge badge-approved"><span class="badge-dot"></span> Disetujui</span>
+                    <span class="text-sm text-muted">Surat dokter diterima</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 4: MASTER DATA SISWA (data-page="master-siswa")
+             ================================================================== -->
+        <section class="page" id="page-master-siswa" data-page="master-siswa" hidden>
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">Data Master Siswa</h2>
+              <p class="page-subtitle">Kelola informasi peserta didik, kelas, dan status kartu kontrol</p>
+            </div>
+            <div style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
+              <button class="btn btn-outline" onclick="navigateTo('import-data')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Import Data Siswa
+              </button>
+              <button class="btn btn-primary" onclick="openModal('modal-siswa')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Tambah Siswa
+              </button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-body">
+              <div class="form-row" style="margin-bottom: var(--space-4);">
+                <div class="form-group" style="flex: 2;">
+                  <input type="text" id="search-siswa" class="form-control"
+                    placeholder="Cari berdasarkan NIS atau Nama Siswa...">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                  <select id="filter-kelas-siswa" class="form-select">
+                    <option value="">Semua Kelas</option>
+                    <option value="X-MIPA-1" selected>X-MIPA-1</option>
+                    <option value="X-MIPA-2">X-MIPA-2</option>
+                    <option value="XI-MIPA-1">XI-MIPA-1</option>
+                    <option value="XI-MIPA-2">XI-MIPA-2</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="table-container">
+                <table class="table" id="table-master-siswa">
+                  <thead>
+                    <tr>
+                      <th style="width: 120px;">NIS</th>
+                      <th>Nama Lengkap Siswa</th>
+                      <th style="width: 140px;">Kelas</th>
+                      <th style="width: 150px;">Kartu Kontrol</th>
+                      <th style="width: 120px;">Status Akun</th>
+                      <th style="width: 140px; text-align: right;">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody data-slot="table-body">
+                    <tr>
+                      <td><strong>1001</strong></td>
+                      <td>Ahmad Dahlan</td>
+                      <td>X-MIPA-1</td>
+                      <td><span class="badge badge-hadir">Ya (Prioritas)</span></td>
+                      <td><span class="badge badge-hadir">Aktif</span></td>
+                      <td style="text-align: right;">
+                        <button class="btn btn-secondary btn-sm" onclick="openModal('modal-siswa')">Edit</button>
+                        <button class="btn btn-outline btn-sm"
+                          style="color: var(--color-alpa); border-color: var(--border-alpa);"
+                          onclick="showToast('Konfirmasi hapus siswa 1001', 'error')">Hapus</button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong>1002</strong></td>
+                      <td>Budi Setiawan</td>
+                      <td>X-MIPA-1</td>
+                      <td><span class="text-muted">-</span></td>
+                      <td><span class="badge badge-hadir">Aktif</span></td>
+                      <td style="text-align: right;">
+                        <button class="btn btn-secondary btn-sm" onclick="openModal('modal-siswa')">Edit</button>
+                        <button class="btn btn-outline btn-sm"
+                          style="color: var(--color-alpa); border-color: var(--border-alpa);"
+                          onclick="showToast('Konfirmasi hapus siswa 1002', 'error')">Hapus</button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong>1003</strong></td>
+                      <td>Citra Lestari</td>
+                      <td>X-MIPA-1</td>
+                      <td><span class="badge badge-hadir">Ya (Prioritas)</span></td>
+                      <td><span class="badge badge-hadir">Aktif</span></td>
+                      <td style="text-align: right;">
+                        <button class="btn btn-secondary btn-sm" onclick="openModal('modal-siswa')">Edit</button>
+                        <button class="btn btn-outline btn-sm"
+                          style="color: var(--color-alpa); border-color: var(--border-alpa);"
+                          onclick="showToast('Konfirmasi hapus siswa 1003', 'error')">Hapus</button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong>1004</strong></td>
+                      <td>Dimas Pratama</td>
+                      <td>X-MIPA-1</td>
+                      <td><span class="text-muted">-</span></td>
+                      <td><span class="badge badge-hadir">Aktif</span></td>
+                      <td style="text-align: right;">
+                        <button class="btn btn-secondary btn-sm" onclick="openModal('modal-siswa')">Edit</button>
+                        <button class="btn btn-outline btn-sm"
+                          style="color: var(--color-alpa); border-color: var(--border-alpa);"
+                          onclick="showToast('Konfirmasi hapus siswa 1004', 'error')">Hapus</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div
+                style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3);">
+                <span class="text-sm text-muted">Menampilkan 4 dari 32 siswa (X-MIPA-1)</span>
+                <div style="display: flex; gap: var(--space-2);">
+                  <button class="btn btn-secondary btn-sm" disabled>Sebelumnya</button>
+                  <button class="btn btn-secondary btn-sm" disabled>Selanjutnya</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 5: IMPORT DATA PASTE (data-page="import-data")
+             ================================================================== -->
+        <section class="page" id="page-import-data" data-page="import-data" hidden>
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">Import Data Master</h2>
+              <p class="page-subtitle">Salin data dari Excel atau Google Sheets lalu tempel di kotak bawah ini</p>
+            </div>
+            <div>
+              <button class="btn btn-secondary" onclick="navigateTo('master-siswa')">Kembali ke Data Siswa</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-body">
+              <div class="alert alert-info">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+                <div>
+                  <strong>Aturan Import:</strong> Kolom dipisahkan oleh Tab. Format untuk Siswa:
+                  <code>nis &bull; nama &bull; id_kelas &bull; kartu_kontrol (Ya/Tidak)</code>. Urutan import yang
+                  benar: Kelas &rarr; Guru/Siswa &rarr; Mapel &rarr; Jadwal.
+                </div>
+              </div>
+
+              <div class="form-row" style="margin-bottom: var(--space-4);">
+                <div class="form-group" style="flex: 1;">
+                  <label class="form-label" for="import-type">Jenis Data yang Diimpor</label>
+                  <select id="import-type" class="form-select">
+                    <option value="Siswa" selected>Siswa (nis, nama, id_kelas, kartu_kontrol)</option>
+                    <option value="Guru">Guru (nip, nama)</option>
+                    <option value="Kelas">Kelas (id_kelas, nama_kelas)</option>
+                    <option value="Mapel">Mapel (id_mapel, nama_mapel)</option>
+                    <option value="Jadwal">Jadwal (id_jadwal, id_semester, id_kelas, id_mapel, nip_guru, hari,
+                      jam_mulai, jam_selesai)</option>
+                  </select>
+                </div>
+                <div class="form-group" style="flex: 1; align-self: flex-end;">
+                  <button type="button" class="btn btn-outline" onclick="loadSamplePaste()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                      <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                    </svg>
+                    Isi Contoh Data Paste
+                  </button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="import-paste-area">Kotak Paste (Salin dari Spreadsheet)</label>
+                <textarea id="import-paste-area" class="form-control"
+                  style="height: 120px; font-family: monospace; font-size: var(--font-sm);"
+                  placeholder="Tempel baris data dari Excel di sini...">1005&#9;Eka Kurniawan&#9;X-MIPA-1&#9;Tidak
+1001&#9;Fajar Hidayat&#9;X-MIPA-99&#9;Ya</textarea>
+                <div class="form-help">Tekan tombol "Pratinjau Data" di bawah untuk memvalidasi duplikasi atau referensi
+                  tak valid.</div>
+              </div>
+
+              <div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-6);">
+                <button type="button" class="btn btn-primary"
+                  onclick="showToast('Pratinjau divalidasi: 1 valid, 1 error.', 'error')">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                  Pratinjau Data
+                </button>
+              </div>
+
+              <!-- Pratinjau Hasil Validasi Import -->
+              <h3 class="card-title" style="margin-bottom: var(--space-3); font-size: var(--font-base);">Tabel Pratinjau
+                & Hasil Validasi</h3>
+              <div class="table-container">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th style="width: 80px;">Baris</th>
+                      <th>NIS</th>
+                      <th>Nama Siswa</th>
+                      <th>Kelas</th>
+                      <th>Kartu Kontrol</th>
+                      <th style="width: 140px;">Status Validasi</th>
+                      <th>Keterangan Masalah</th>
+                    </tr>
+                  </thead>
+                  <tbody data-slot="preview-body">
+                    <tr class="table-row-valid">
+                      <td>1</td>
+                      <td>1005</td>
+                      <td>Eka Kurniawan</td>
+                      <td>X-MIPA-1</td>
+                      <td>Tidak</td>
+                      <td><span class="badge badge-hadir"><span class="badge-dot"></span> Valid</span></td>
+                      <td class="text-sm text-muted">Data siap disimpan</td>
+                    </tr>
+                    <tr class="table-row-error">
+                      <td>2</td>
+                      <td><strong>1001</strong></td>
+                      <td>Fajar Hidayat</td>
+                      <td><strong>X-MIPA-99</strong></td>
+                      <td>Ya</td>
+                      <td><span class="badge badge-alpa"><span class="badge-dot"></span> Error</span></td>
+                      <td style="color: var(--color-alpa); font-weight: 600; font-size: var(--font-xs);">
+                        NIS 1001 sudah ada di sistem; Kelas 'X-MIPA-99' tidak ditemukan
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card-footer">
+              <span class="text-sm text-muted" style="margin-right: auto;">1 dari 2 baris valid. Hanya baris valid yang
+                dapat diproses.</span>
+              <button class="btn btn-secondary" onclick="loadSamplePaste()">Reset Form</button>
+              <button class="btn btn-success" onclick="showToast('Sukses mengimpor 1 baris data valid!', 'success')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Simpan Data Valid
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 6: JADWAL GURU HARI INI (data-page="jadwal-guru")
+             ================================================================== -->
+        <section class="page" id="page-jadwal-guru" data-page="jadwal-guru" hidden>
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">Jadwal Mengajar Hari Ini</h2>
+              <p class="page-subtitle">Daftar jadwal mengajar dan status pengisian presensi kelas Anda</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: var(--space-2);">
+              <label class="form-label" for="jadwal-date-picker" style="margin-bottom: 0;">Tanggal:</label>
+              <input type="date" id="jadwal-date-picker" class="form-control" style="width: auto; min-height: 40px;"
+                value="2026-11-15" max="2026-11-15">
+            </div>
+          </div>
+
+          <div class="alert alert-info" style="margin-bottom: var(--space-4);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="16" x2="12" y2="12" />
+              <line x1="12" y1="8" x2="12.01" y2="8" />
+            </svg>
+            <div>
+              <strong>Ketentuan Presensi:</strong> Presensi hanya dapat diisi pada semester aktif. Tanggal masa depan
+              tidak diizinkan. Jika presensi tanggal lalu belum diisi, Anda tetap dapat mengisinya.
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3">
+            <!-- Card Jadwal 1 -->
+            <div class="card" style="border-top: 4px solid var(--color-hadir);">
+              <div class="card-body">
+                <div
+                  style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3);">
+                  <span class="badge badge-sudah"><span class="badge-dot"></span> Sudah Diisi</span>
+                  <span style="font-weight: 700; color: var(--text-muted); font-size: var(--font-sm);">07.30 -
+                    09.00</span>
+                </div>
+                <h3 style="font-size: var(--font-lg); font-weight: 700; margin-bottom: 4px;">Matematika</h3>
+                <p style="font-size: var(--font-sm); color: var(--text-muted); margin-bottom: var(--space-4);">Kelas
+                  X-MIPA-1 &bull; 32 Siswa</p>
+                <div
+                  style="padding: var(--space-2) var(--space-3); background: var(--surface-muted); border-radius: var(--radius-md); font-size: var(--font-xs); color: var(--text-muted); margin-bottom: var(--space-4);">
+                  Rekap: 30 Hadir &bull; 1 Izin &bull; 1 Sakit &bull; 0 Alpa
+                </div>
+                <button class="btn btn-secondary btn-block" onclick="navigateTo('form-presensi')">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                  Edit Presensi
+                </button>
+              </div>
+            </div>
+
+            <!-- Card Jadwal 2 -->
+            <div class="card" style="border-top: 4px solid var(--primary); box-shadow: var(--shadow-md);">
+              <div class="card-body">
+                <div
+                  style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3);">
+                  <span class="badge badge-belum"><span class="badge-dot"></span> Belum Diisi</span>
+                  <span style="font-weight: 700; color: var(--primary); font-size: var(--font-sm);">09.15 - 10.45</span>
+                </div>
+                <h3 style="font-size: var(--font-lg); font-weight: 700; margin-bottom: 4px;">Fisika</h3>
+                <p style="font-size: var(--font-sm); color: var(--text-muted); margin-bottom: var(--space-4);">Kelas
+                  XI-MIPA-2 &bull; 32 Siswa</p>
+                <div
+                  style="padding: var(--space-2) var(--space-3); background: var(--bg-wait-appr); border-radius: var(--radius-md); font-size: var(--font-xs); color: var(--color-wait-appr); margin-bottom: var(--space-4);">
+                  1 Siswa mengajukan Izin untuk jam ini
+                </div>
+                <button class="btn btn-primary btn-block" onclick="navigateTo('form-presensi')">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 11 12 14 22 4" />
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                  </svg>
+                  Isi Presensi Sekarang
+                </button>
+              </div>
+            </div>
+
+            <!-- Card Jadwal 3 -->
+            <div class="card" style="border-top: 4px solid var(--surface-border);">
+              <div class="card-body">
+                <div
+                  style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3);">
+                  <span class="badge badge-belum"><span class="badge-dot"></span> Belum Diisi</span>
+                  <span style="font-weight: 700; color: var(--text-muted); font-size: var(--font-sm);">11.00 -
+                    12.30</span>
+                </div>
+                <h3 style="font-size: var(--font-lg); font-weight: 700; margin-bottom: 4px;">Matematika</h3>
+                <p style="font-size: var(--font-sm); color: var(--text-muted); margin-bottom: var(--space-4);">Kelas
+                  X-MIPA-2 &bull; 30 Siswa</p>
+                <div
+                  style="padding: var(--space-2) var(--space-3); background: var(--surface-muted); border-radius: var(--radius-md); font-size: var(--font-xs); color: var(--text-muted); margin-bottom: var(--space-4);">
+                  Belum dimulai
+                </div>
+                <button class="btn btn-secondary btn-block" onclick="navigateTo('form-presensi')">
+                  Isi Nanti
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 7: FORM PRESENSI (data-page="form-presensi")
+             ================================================================== -->
+        <section class="page" id="page-form-presensi" data-page="form-presensi" hidden>
+          <div class="page-header">
+            <div>
+              <div style="display: flex; align-items: center; gap: var(--space-2); margin-bottom: 4px;">
+                <button class="btn btn-secondary btn-sm" onclick="navigateTo('jadwal-guru')">&larr; Kembali</button>
+                <span class="badge badge-izin">Fisika &bull; XI-MIPA-2</span>
+              </div>
+              <h2 class="page-title">Form Presensi Siswa</h2>
+              <p class="page-subtitle">Senin, 15 Nov 2026 &bull; Jam: 09.15 - 10.45 &bull; Total: 4 Siswa (Demo)</p>
+            </div>
+            <div style="display: flex; gap: var(--space-2);">
+              <button type="button" class="btn btn-outline" onclick="markAllHadir()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Tandai Semua Hadir
+              </button>
+            </div>
+          </div>
+
+          <!-- Counter Ringkasan Realtime -->
+          <div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-4); flex-wrap: wrap;">
+            <div
+              style="flex: 1; min-width: 70px; background: var(--bg-hadir); border: 1px solid var(--border-hadir); border-radius: var(--radius-md); padding: 8px 12px; text-align: center;">
+              <div style="font-size: var(--font-xs); color: var(--color-hadir); font-weight: 700;">Hadir</div>
+              <div style="font-size: var(--font-lg); font-weight: 800; color: var(--color-hadir);" id="counter-hadir">2
+              </div>
+            </div>
+            <div
+              style="flex: 1; min-width: 70px; background: var(--bg-izin); border: 1px solid var(--border-izin); border-radius: var(--radius-md); padding: 8px 12px; text-align: center;">
+              <div style="font-size: var(--font-xs); color: var(--color-izin); font-weight: 700;">Izin</div>
+              <div style="font-size: var(--font-lg); font-weight: 800; color: var(--color-izin);" id="counter-izin">1
+              </div>
+            </div>
+            <div
+              style="flex: 1; min-width: 70px; background: var(--bg-sakit); border: 1px solid var(--border-sakit); border-radius: var(--radius-md); padding: 8px 12px; text-align: center;">
+              <div style="font-size: var(--font-xs); color: var(--color-sakit); font-weight: 700;">Sakit</div>
+              <div style="font-size: var(--font-lg); font-weight: 800; color: var(--color-sakit);" id="counter-sakit">1
+              </div>
+            </div>
+            <div
+              style="flex: 1; min-width: 70px; background: var(--bg-alpa); border: 1px solid var(--border-alpa); border-radius: var(--radius-md); padding: 8px 12px; text-align: center;">
+              <div style="font-size: var(--font-xs); color: var(--color-alpa); font-weight: 700;">Alpa</div>
+              <div style="font-size: var(--font-lg); font-weight: 800; color: var(--color-alpa);" id="counter-alpa">0
+              </div>
+            </div>
+          </div>
+
+          <form id="form-presensi-siswa"
+            onsubmit="event.preventDefault(); showToast('Presensi 4 siswa berhasil disimpan!', 'success');">
+            <div class="attendance-grid" id="attendance-list-container">
+              <!-- Siswa 1 -->
+              <div class="attendance-card">
+                <div class="attendance-card-header">
+                  <div class="student-info">
+                    1. Ahmad Fauzi <span class="student-nis">&bull; NIS: 2001</span>
+                  </div>
+                </div>
+                <div class="status-group">
+                  <label>
+                    <input type="radio" name="status_2001" value="Hadir" class="status-radio" checked
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Hadir</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="status_2001" value="Izin" class="status-radio"
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Izin</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="status_2001" value="Sakit" class="status-radio"
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Sakit</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="status_2001" value="Alpa" class="status-radio"
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Alpa</span>
+                  </label>
+                </div>
+                <input type="text" class="form-control" placeholder="Keterangan opsional (mis. terlambat 5 menit)">
+              </div>
+
+              <!-- Siswa 2 (Izin Disetujui) -->
+              <div class="attendance-card" style="border-left: 4px solid var(--color-izin);">
+                <div class="attendance-card-header">
+                  <div class="student-info">
+                    2. Budi Santoso <span class="student-nis">&bull; NIS: 2002</span>
+                  </div>
+                  <span class="badge badge-izin">Pengajuan Izin Disetujui</span>
+                </div>
+                <div class="status-group">
+                  <label>
+                    <input type="radio" name="status_2002" value="Hadir" class="status-radio"
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Hadir</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="status_2002" value="Izin" class="status-radio" checked
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Izin</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="status_2002" value="Sakit" class="status-radio"
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Sakit</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="status_2002" value="Alpa" class="status-radio"
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Alpa</span>
+                  </label>
+                </div>
+                <input type="text" class="form-control" value="Surat orang tua: ada acara keluarga" readonly
+                  style="background: var(--surface-muted);">
+              </div>
+
+              <!-- Siswa 3 (Sakit Disetujui) -->
+              <div class="attendance-card" style="border-left: 4px solid var(--color-sakit);">
+                <div class="attendance-card-header">
+                  <div class="student-info">
+                    3. Citra Dewi <span class="student-nis">&bull; NIS: 2003</span>
+                  </div>
+                  <span class="badge badge-sakit">Surat Dokter Diterima</span>
+                </div>
+                <div class="status-group">
+                  <label>
+                    <input type="radio" name="status_2003" value="Hadir" class="status-radio"
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Hadir</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="status_2003" value="Izin" class="status-radio"
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Izin</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="status_2003" value="Sakit" class="status-radio" checked
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Sakit</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="status_2003" value="Alpa" class="status-radio"
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Alpa</span>
+                  </label>
+                </div>
+                <input type="text" class="form-control" value="Demam dan berobat ke klinik" readonly
+                  style="background: var(--surface-muted);">
+              </div>
+
+              <!-- Siswa 4 -->
+              <div class="attendance-card">
+                <div class="attendance-card-header">
+                  <div class="student-info">
+                    4. Doni Pratama <span class="student-nis">&bull; NIS: 2004</span>
+                  </div>
+                </div>
+                <div class="status-group">
+                  <label>
+                    <input type="radio" name="status_2004" value="Hadir" class="status-radio" checked
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Hadir</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="status_2004" value="Izin" class="status-radio"
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Izin</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="status_2004" value="Sakit" class="status-radio"
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Sakit</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="status_2004" value="Alpa" class="status-radio"
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Alpa</span>
+                  </label>
+                </div>
+                <input type="text" class="form-control" placeholder="Keterangan opsional">
+              </div>
+            </div>
+
+            <!-- Sticky Action Footer -->
+            <div
+              style="position: sticky; bottom: 0; background: var(--surface); padding: var(--space-4); border-top: 1px solid var(--surface-border); border-radius: var(--radius-lg); margin-top: var(--space-4); display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow-lg);">
+              <span class="text-sm text-muted">Perubahan terakhir dicatat otomatis oleh server.</span>
+              <button type="submit" class="btn btn-success" style="min-width: 180px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                  <polyline points="17 21 17 13 7 13 7 21" />
+                  <polyline points="7 3 7 8 15 8" />
+                </svg>
+                Simpan Presensi
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 8: PENGAJUAN SISWA (data-page="pengajuan-siswa")
+             ================================================================== -->
+        <section class="page" id="page-pengajuan-siswa" data-page="pengajuan-siswa" hidden>
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">Pengajuan Sakit & Izin</h2>
+              <p class="page-subtitle">Ajukan permohonan ketidakhadiran mapel hari ini serta pantau status persetujuan
+              </p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2" style="align-items: start;">
+            <!-- Form Pengajuan Baru -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Form Pengajuan Baru</h3>
+              </div>
+              <div class="card-body">
+                <div class="alert alert-info">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
+                  <div>
+                    <strong>Batas Waktu:</strong> Pengajuan hanya dapat dikirim dalam <strong>15 menit pertama</strong>
+                    sejak jam mulai mapel.
+                  </div>
+                </div>
+
+                <form id="form-pengajuan-baru"
+                  onsubmit="event.preventDefault(); showToast('Pengajuan berhasil dikirim! Menunggu persetujuan guru.', 'success');">
+                  <div class="form-group">
+                    <label class="form-label" for="pengajuan-jadwal">Pilih Mapel & Jadwal Hari Ini</label>
+                    <select id="pengajuan-jadwal" class="form-select" required>
+                      <option value="1">Matematika - 07.30 s.d. 09.00 (Budi Pratama, S.Pd)</option>
+                      <option value="2">Fisika - 09.15 s.d. 10.45 (Rahmat Fahmi, M.Pd)</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Jenis Pengajuan</label>
+                    <div style="display: flex; gap: var(--space-4); margin-top: var(--space-2);">
+                      <label style="display: flex; align-items: center; gap: var(--space-2); cursor: pointer;">
+                        <input type="radio" name="jenis_pengajuan" value="Sakit" checked
+                          onchange="toggleBuktiRequirement('Sakit')">
+                        <strong>Sakit</strong> (Bukti bisa menyusul)
+                      </label>
+                      <label style="display: flex; align-items: center; gap: var(--space-2); cursor: pointer;">
+                        <input type="radio" name="jenis_pengajuan" value="Izin"
+                          onchange="toggleBuktiRequirement('Izin')">
+                        <strong>Izin</strong> (Wajib surat orang tua)
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="pengajuan-alasan">Alasan Pengajuan</label>
+                    <textarea id="pengajuan-alasan" class="form-control"
+                      placeholder="Tuliskan alasan singkat ketidakhadiran..." required></textarea>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="pengajuan-file">
+                      Unggah Bukti <span id="bukti-required-text" class="text-muted">(Opsional saat sakit, wajib untuk
+                        izin)</span>
+                    </label>
+                    <input type="file" id="pengajuan-file" class="form-control" accept="image/*,application/pdf">
+                    <div class="form-help">Format: Foto (JPG, PNG) atau PDF. Maksimal 2 MB.</div>
+                  </div>
+
+                  <button type="submit" class="btn btn-primary btn-block">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="22" y1="2" x2="11" y2="13" />
+                      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                    </svg>
+                    Kirim Pengajuan
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <!-- Daftar Riwayat Pengajuan Siswa -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Riwayat Pengajuan Anda</h3>
+              </div>
+              <div class="card-body">
+                <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+                  <!-- Item 1: Disetujui -->
+                  <div
+                    style="padding: var(--space-3); border: 1px solid var(--surface-border); border-radius: var(--radius-md);">
+                    <div
+                      style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
+                      <span class="badge badge-approved"><span class="badge-dot"></span> Disetujui</span>
+                      <span class="text-sm text-muted">15 Nov 2026</span>
+                    </div>
+                    <div style="font-weight: 700;">Izin &bull; Matematika</div>
+                    <p class="text-sm text-muted" style="margin-bottom: 6px;">Alasan: Acara keluarga mendesak</p>
+                    <span class="text-sm" style="color: var(--color-hadir);">&check; Surat izin orang tua
+                      diverifikasi</span>
+                  </div>
+
+                  <!-- Item 2: Menunggu Bukti -->
+                  <div
+                    style="padding: var(--space-3); border: 1px solid var(--surface-border); border-radius: var(--radius-md); background: #faf5ff;">
+                    <div
+                      style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
+                      <span class="badge badge-wait-doc"><span class="badge-dot"></span> Menunggu Bukti</span>
+                      <span class="text-sm text-muted">14 Nov 2026</span>
+                    </div>
+                    <div style="font-weight: 700;">Sakit &bull; Bahasa Inggris</div>
+                    <p class="text-sm text-muted" style="margin-bottom: 8px;">Alasan: Demam dan pusing</p>
+                    <button class="btn btn-primary btn-sm" onclick="openModal('modal-unggah-bukti')">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                      Unggah Surat Dokter
+                    </button>
+                  </div>
+
+                  <!-- Item 3: Menunggu Persetujuan -->
+                  <div
+                    style="padding: var(--space-3); border: 1px solid var(--surface-border); border-radius: var(--radius-md);">
+                    <div
+                      style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
+                      <span class="badge badge-wait-appr"><span class="badge-dot"></span> Menunggu Persetujuan</span>
+                      <span class="text-sm text-muted">12 Nov 2026</span>
+                    </div>
+                    <div style="font-weight: 700;">Izin &bull; Fisika</div>
+                    <p class="text-sm text-muted">Alasan: Mengikuti lomba sains tingkat kota</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 9: PERSETUJUAN GURU (data-page="persetujuan-guru")
+             ================================================================== -->
+        <section class="page" id="page-persetujuan-guru" data-page="persetujuan-guru" hidden>
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">Persetujuan Sakit & Izin Siswa</h2>
+              <p class="page-subtitle">Tinjau permohonan izin dari siswa pada mata pelajaran yang Anda ampu</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-body">
+              <div class="form-row" style="margin-bottom: var(--space-4);">
+                <div class="form-group" style="flex: 1;">
+                  <label class="form-label" for="filter-status-izin">Status Pengajuan</label>
+                  <select id="filter-status-izin" class="form-select">
+                    <option value="">Semua Status</option>
+                    <option value="Menunggu persetujuan" selected>Menunggu Persetujuan (2)</option>
+                    <option value="Menunggu bukti">Menunggu Bukti (1)</option>
+                    <option value="Disetujui">Disetujui</option>
+                    <option value="Ditolak">Ditolak</option>
+                  </select>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                  <label class="form-label" for="filter-kelas-izin">Kelas</label>
+                  <select id="filter-kelas-izin" class="form-select">
+                    <option value="">Semua Kelas</option>
+                    <option value="X-MIPA-1">X-MIPA-1</option>
+                    <option value="XI-MIPA-2">XI-MIPA-2</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="table-container">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Tanggal</th>
+                      <th>Siswa & Kelas</th>
+                      <th>Mapel & Jam</th>
+                      <th>Jenis</th>
+                      <th>Waktu Masuk</th>
+                      <th>Status</th>
+                      <th style="text-align: right;">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody data-slot="table-body">
+                    <tr>
+                      <td>15 Nov 2026</td>
+                      <td>
+                        <strong>Ahmad Fauzi</strong>
+                        <div class="text-sm text-muted">NIS: 2001 &bull; XI-MIPA-2</div>
+                      </td>
+                      <td>Fisika (09.15 - 10.45)</td>
+                      <td><span class="badge badge-izin">Izin</span></td>
+                      <td>09.22 WIB <span class="text-sm" style="color: var(--color-hadir);">(7 mnt)</span></td>
+                      <td><span class="badge badge-wait-appr"><span class="badge-dot"></span> Menunggu
+                          Persetujuan</span></td>
+                      <td style="text-align: right;">
+                        <button class="btn btn-primary btn-sm" onclick="openModal('modal-review-izin')">
+                          Periksa Bukti
+                        </button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>15 Nov 2026</td>
+                      <td>
+                        <strong>Rian Pratama</strong>
+                        <div class="text-sm text-muted">NIS: 2005 &bull; XI-MIPA-2</div>
+                      </td>
+                      <td>Fisika (09.15 - 10.45)</td>
+                      <td><span class="badge badge-sakit">Sakit</span></td>
+                      <td>09.18 WIB <span class="text-sm" style="color: var(--color-hadir);">(3 mnt)</span></td>
+                      <td><span class="badge badge-wait-doc"><span class="badge-dot"></span> Menunggu Bukti</span></td>
+                      <td style="text-align: right;">
+                        <button class="btn btn-secondary btn-sm" onclick="openModal('modal-review-izin')">
+                          Detail
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 10: REKAP & EKSPOR (data-page="rekap-presensi")
+             ================================================================== -->
+        <section class="page" id="page-rekap-presensi" data-page="rekap-presensi" hidden>
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">Rekapitulasi Kehadiran</h2>
+              <p class="page-subtitle">Laporan statistik kehadiran per semester dan ekspor berkas Excel</p>
+            </div>
+            <div>
+              <button class="btn btn-success"
+                onclick="showToast('Mengunduh berkas Rekap-Presensi-2026.xlsx...', 'success')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Ekspor Excel (.xlsx)
+              </button>
+            </div>
+          </div>
+
+          <!-- Filter Bar Guru & Admin -->
+          <div class="card" id="rekap-filter-card">
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group" style="flex: 1;">
+                  <label class="form-label" for="rekap-semester">Semester</label>
+                  <select id="rekap-semester" class="form-select">
+                    <option value="1" selected>2026/2027 Ganjil (Aktif)</option>
+                    <option value="2">2025/2026 Genap (Arsip)</option>
+                  </select>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                  <label class="form-label" for="rekap-kelas">Kelas</label>
+                  <select id="rekap-kelas" class="form-select">
+                    <option value="X-MIPA-1" selected>X-MIPA-1</option>
+                    <option value="X-MIPA-2">X-MIPA-2</option>
+                    <option value="XI-MIPA-2">XI-MIPA-2</option>
+                  </select>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                  <label class="form-label" for="rekap-mapel">Mata Pelajaran</label>
+                  <select id="rekap-mapel" class="form-select">
+                    <option value="all">Semua Mapel</option>
+                    <option value="matematika" selected>Matematika</option>
+                    <option value="fisika">Fisika</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabel Rekap Guru & Admin -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Rekap Kelas X-MIPA-1 &bull; Matematika</h3>
+              <span class="text-sm text-muted">Periode: Semester Ganjil</span>
+            </div>
+            <div class="card-body">
+              <div class="table-container">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th style="width: 50px;">No</th>
+                      <th style="width: 100px;">NIS</th>
+                      <th>Nama Siswa</th>
+                      <th style="text-align: center; width: 80px;">Hadir</th>
+                      <th style="text-align: center; width: 80px;">Izin</th>
+                      <th style="text-align: center; width: 80px;">Sakit</th>
+                      <th style="text-align: center; width: 80px;">Alpa</th>
+                      <th style="text-align: center; width: 120px;">Kehadiran %</th>
+                      <th style="width: 140px;">Kartu Kontrol</th>
+                    </tr>
+                  </thead>
+                  <tbody data-slot="table-body">
+                    <tr>
+                      <td>1</td>
+                      <td><strong>1001</strong></td>
+                      <td>Ahmad Dahlan</td>
+                      <td style="text-align: center; font-weight: 700; color: var(--color-hadir);">18</td>
+                      <td style="text-align: center;">2</td>
+                      <td style="text-align: center;">0</td>
+                      <td style="text-align: center; color: var(--text-muted);">0</td>
+                      <td style="text-align: center; font-weight: 700; color: var(--color-hadir);">90.0%</td>
+                      <td><span class="badge badge-hadir">Prioritas</span></td>
+                    </tr>
+                    <tr>
+                      <td>2</td>
+                      <td><strong>1002</strong></td>
+                      <td>Budi Setiawan</td>
+                      <td style="text-align: center; font-weight: 700; color: var(--color-hadir);">20</td>
+                      <td style="text-align: center;">0</td>
+                      <td style="text-align: center;">0</td>
+                      <td style="text-align: center; color: var(--text-muted);">0</td>
+                      <td style="text-align: center; font-weight: 700; color: var(--color-hadir);">100.0%</td>
+                      <td><span class="text-muted">-</span></td>
+                    </tr>
+                    <tr>
+                      <td>3</td>
+                      <td><strong>1003</strong></td>
+                      <td>Citra Lestari</td>
+                      <td style="text-align: center; font-weight: 700; color: var(--color-hadir);">17</td>
+                      <td style="text-align: center;">1</td>
+                      <td style="text-align: center;">2</td>
+                      <td style="text-align: center; color: var(--text-muted);">0</td>
+                      <td style="text-align: center; font-weight: 700; color: var(--color-hadir);">85.0%</td>
+                      <td><span class="badge badge-hadir">Prioritas</span></td>
+                    </tr>
+                    <tr>
+                      <td>4</td>
+                      <td><strong>1004</strong></td>
+                      <td>Dimas Pratama</td>
+                      <td style="text-align: center; font-weight: 700; color: var(--color-alpa);">14</td>
+                      <td style="text-align: center;">1</td>
+                      <td style="text-align: center;">1</td>
+                      <td style="text-align: center; font-weight: 700; color: var(--color-alpa);">4</td>
+                      <td style="text-align: center; font-weight: 700; color: var(--color-alpa);">70.0%</td>
+                      <td><span class="text-muted">-</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODALS
+       ==================================================================== -->
+
+  <!-- Modal 1: Tambah / Edit Siswa -->
+  <div class="modal-backdrop" id="modal-siswa" role="dialog" aria-modal="true" aria-labelledby="modal-siswa-title" hidden>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="card-title" id="modal-siswa-title">Form Data Siswa</h3>
+        <button type="button" class="btn-close" onclick="closeModal('modal-siswa')" aria-label="Tutup">&times;</button>
+      </div>
+      <form id="form-modal-siswa"
+        onsubmit="event.preventDefault(); closeModal('modal-siswa'); showToast('Data siswa berhasil disimpan!', 'success');">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="siswa-nis">Nomor Induk Siswa (NIS)</label>
+            <input type="text" id="siswa-nis" class="form-control" placeholder="Contoh: 1005" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="siswa-nama">Nama Lengkap Siswa</label>
+            <input type="text" id="siswa-nama" class="form-control" placeholder="Contoh: Eka Kurniawan" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="siswa-kelas">Kelas</label>
+            <select id="siswa-kelas" class="form-select" required>
+              <option value="X-MIPA-1">X-MIPA-1</option>
+              <option value="X-MIPA-2">X-MIPA-2</option>
+              <option value="XI-MIPA-1">XI-MIPA-1</option>
+              <option value="XI-MIPA-2">XI-MIPA-2</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label style="display: flex; align-items: center; gap: var(--space-2); cursor: pointer;">
+              <input type="checkbox" id="siswa-kartu-kontrol" value="Ya" style="width: 18px; height: 18px;">
+              <span class="form-label" style="margin-bottom: 0;">Siswa Pemegang Kartu Kontrol (Prioritas)</span>
+            </label>
+            <div class="form-help">Siswa kartu kontrol dapat langsung mengunggah bukti surat sakit tanpa status tunggu
+              bukti.</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-siswa')">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan Siswa</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 2: Review & Persetujuan Pengajuan Guru -->
+  <div class="modal-backdrop" id="modal-review-izin" role="dialog" aria-modal="true"
+    aria-labelledby="modal-review-title" hidden>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="card-title" id="modal-review-title">Pemeriksaan Bukti Pengajuan</h3>
+        <button type="button" class="btn-close" onclick="closeModal('modal-review-izin')"
+          aria-label="Tutup">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="margin-bottom: var(--space-4);">
+          <div
+            style="font-size: var(--font-xs); color: var(--text-muted); text-transform: uppercase; font-weight: 700;">
+            Data Pemohon</div>
+          <div style="font-size: var(--font-base); font-weight: 700;">Ahmad Fauzi &bull; NIS: 2001 (XI-MIPA-2)</div>
+          <div class="text-sm text-muted">Mata Pelajaran: Fisika &bull; 15 Nov 2026 (09.15 - 10.45)</div>
+          <div class="text-sm text-muted">Diajukan pada: 09.22 WIB <span class="badge badge-hadir">Dalam batas 15
+              menit</span></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Alasan Siswa</label>
+          <div
+            style="padding: var(--space-3); background: var(--surface-muted); border-radius: var(--radius-md); font-size: var(--font-sm);">
+            "Orang tua ada urusan keluarga mendesak ke luar kota, mohon izin tidak masuk pada mapel hari ini."
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Pratinjau Berkas Bukti (Surat Orang Tua / Dokter)</label>
+          <div class="doc-preview-box has-file" data-slot="doc-preview">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+              style="color: var(--primary);">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+              <polyline points="10 9 9 9 8 9" />
+            </svg>
+            <div style="font-weight: 600; font-size: var(--font-sm);">surat_izin_orangtua_ttd.pdf</div>
+            <div class="text-sm text-muted">Ukuran: 840 KB &bull; Diunggah oleh Ahmad Fauzi</div>
+            <button type="button" class="btn btn-outline btn-sm" style="margin-top: var(--space-2);"
+              onclick="showToast('Membuka pratinjau dokumen Google Drive...', 'success')">
+              Buka Berkas Penuh di Drive
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="review-catatan-guru">Catatan Guru (Opsional jika ditolak)</label>
+          <textarea id="review-catatan-guru" class="form-control"
+            placeholder="Tuliskan catatan persetujuan atau alasan penolakan..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger"
+          onclick="closeModal('modal-review-izin'); showToast('Pengajuan ditolak.', 'error');">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+          Tolak Pengajuan
+        </button>
+        <button type="button" class="btn btn-success"
+          onclick="closeModal('modal-review-izin'); showToast('Pengajuan disetujui! Status presensi siswa menjadi Izin.', 'success');">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          Setujui Pengajuan
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Unggah Bukti Susulan Siswa -->
+  <div class="modal-backdrop" id="modal-unggah-bukti" role="dialog" aria-modal="true"
+    aria-labelledby="modal-unggah-title" hidden>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="card-title" id="modal-unggah-title">Unggah Bukti Surat Dokter</h3>
+        <button type="button" class="btn-close" onclick="closeModal('modal-unggah-bukti')"
+          aria-label="Tutup">&times;</button>
+      </div>
+      <form
+        onsubmit="event.preventDefault(); closeModal('modal-unggah-bukti'); showToast('Bukti dokter berhasil diunggah! Status berubah menjadi Menunggu Persetujuan.', 'success');">
+        <div class="modal-body">
+          <p class="text-sm text-muted" style="margin-bottom: var(--space-3);">
+            Pengajuan Sakit: Bahasa Inggris (14 Nov 2026). Silakan unggah foto atau dokumen surat keterangan berobat
+            dari klinik atau dokter.
+          </p>
+          <div class="form-group">
+            <label class="form-label" for="file-bukti-susulan">Pilih Berkas Bukti (PDF / JPG / PNG)</label>
+            <input type="file" id="file-bukti-susulan" class="form-control" required accept="image/*,application/pdf">
+            <div class="form-help">Maksimal 2 MB. Berkas akan disimpan di Google Drive sekolah.</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-unggah-bukti')">Batal</button>
+          <button type="submit" class="btn btn-primary">Unggah Sekarang</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container" role="status" aria-live="polite"></div>
+
+  <?!= include('Script'); ?>
+</body>
+
+</html>

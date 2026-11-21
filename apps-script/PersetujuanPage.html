@@ -1,0 +1,385 @@
+<!-- ==================================================================
+     HALAMAN PERSETUJUAN GURU (T08) - data-page="persetujuan-guru"
+     ================================================================== -->
+<section class="page" id="page-persetujuan-guru" data-page="persetujuan-guru" hidden>
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Persetujuan Izin & Sakit</h2>
+      <p class="page-subtitle">Tinjau pengajuan siswa pada jadwal yang Anda ajar, periksa bukti, lalu setujui atau tolak.</p>
+    </div>
+    <div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap;">
+      <label class="form-label" for="persetujuan-filter-status" style="margin-bottom: 0; font-weight: 600;">Status:</label>
+      <select id="persetujuan-filter-status" class="form-select" style="width: auto; min-height: 44px;"
+        onchange="saringPengajuanGuru()">
+        <option value="">Semua status</option>
+        <option value="Menunggu bukti">Menunggu bukti</option>
+        <option value="Menunggu persetujuan">Menunggu persetujuan</option>
+        <option value="Disetujui">Disetujui</option>
+        <option value="Ditolak">Ditolak</option>
+      </select>
+      <button type="button" class="btn btn-outline" onclick="muatPengajuanGuru()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10" />
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+        </svg>
+        Muat Ulang
+      </button>
+    </div>
+  </div>
+
+  <div class="alert alert-info" style="margin-bottom: var(--space-4);">
+    Hanya pengajuan pada jadwal yang Anda ajar di semester aktif yang ditampilkan. Persetujuan mengubah status
+    presensi siswa hanya jika presensi kelas tersebut sudah diisi.
+  </div>
+
+  <div id="persetujuan-loading" style="display: none; text-align: center; padding: var(--space-8);">
+    <div class="loading-spinner" style="margin: 0 auto var(--space-3);"></div>
+    <div class="text-muted text-sm">Memuat pengajuan siswa...</div>
+  </div>
+
+  <div id="persetujuan-empty" class="empty-state" style="display: none; padding: var(--space-4);">
+    <p class="text-muted">Tidak ada pengajuan yang cocok dengan filter.</p>
+  </div>
+
+  <div id="persetujuan-list" style="display: flex; flex-direction: column; gap: var(--space-3);"></div>
+</section>
+
+<!-- ==================================================================
+     MODAL PERIKSA & PROSES PENGAJUAN (T08)
+     ================================================================== -->
+<div class="modal-backdrop" id="modal-proses-pengajuan" role="dialog" aria-modal="true"
+  aria-labelledby="modal-proses-title" hidden>
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3 class="card-title" id="modal-proses-title">Periksa Pengajuan</h3>
+      <button type="button" class="btn-close" onclick="tutupModalProsesPengajuan()" aria-label="Tutup">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-proses-info" class="text-sm" style="margin-bottom: var(--space-3);"></div>
+      <div class="form-group">
+        <label class="form-label">Bukti Pendukung</label>
+        <div data-slot="doc-preview" id="modal-proses-preview"
+          style="padding: var(--space-3); border: 1px dashed var(--surface-border); border-radius: var(--radius-md); background: var(--surface-alt);">
+          <p class="text-muted text-sm" id="modal-proses-preview-note" style="margin: 0;">Memuat bukti...</p>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="persetujuan-catatan">Catatan Guru
+          <span class="text-muted">(opsional, maks 300 karakter)</span></label>
+        <textarea id="persetujuan-catatan" class="form-control" rows="2" maxlength="300"
+          placeholder="Contoh: Surat kurang jelas, silakan unggah ulang."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="tutupModalProsesPengajuan()">Batal</button>
+      <button type="button" class="btn btn-danger" id="btn-tolak-pengajuan"
+        onclick="kirimKeputusanPengajuan('Ditolak')">Tolak</button>
+      <button type="button" class="btn btn-success" id="btn-setuju-pengajuan"
+        onclick="kirimKeputusanPengajuan('Disetujui')">Setujui</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/**
+ * Logika Klien Halaman Persetujuan Guru (T08)
+ */
+let daftarPengajuanGuru = [];
+let pengajuanDiproses = null;
+
+function initPersetujuanGuruPage() {
+  const filterEl = document.getElementById('persetujuan-filter-status');
+  if (filterEl) filterEl.value = 'Menunggu persetujuan';
+  muatPengajuanGuru();
+}
+
+/**
+ * Muat pengajuan untuk jadwal milik guru login (tanpa link_bukti dari server).
+ */
+function muatPengajuanGuru() {
+  const token = getStoredToken();
+  if (!token) return;
+
+  const loadingEl = document.getElementById('persetujuan-loading');
+  const emptyEl = document.getElementById('persetujuan-empty');
+  const container = document.getElementById('persetujuan-list');
+
+  if (loadingEl) loadingEl.style.display = 'block';
+  if (emptyEl) emptyEl.style.display = 'none';
+  if (container) container.innerHTML = '';
+
+  if (typeof google === 'undefined' || !google.script || !google.script.run) {
+    if (loadingEl) loadingEl.style.display = 'none';
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler(function (list) {
+      if (loadingEl) loadingEl.style.display = 'none';
+      daftarPengajuanGuru = list || [];
+      saringPengajuanGuru();
+    })
+    .withFailureHandler(function (err) {
+      if (loadingEl) loadingEl.style.display = 'none';
+      showToast(err.message || 'Gagal memuat pengajuan.', 'error');
+    })
+    .getPengajuanGuru(token);
+}
+
+/**
+ * Terapkan filter status di sisi klien lalu render daftar.
+ */
+function saringPengajuanGuru() {
+  const filterEl = document.getElementById('persetujuan-filter-status');
+  const status = filterEl ? filterEl.value : '';
+  const items = daftarPengajuanGuru.filter(function (item) {
+    return !status || item.status === status;
+  });
+
+  const emptyEl = document.getElementById('persetujuan-empty');
+  const container = document.getElementById('persetujuan-list');
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (items.length === 0) {
+    if (emptyEl) emptyEl.style.display = 'block';
+    return;
+  }
+  if (emptyEl) emptyEl.style.display = 'none';
+
+  for (let i = 0; i < items.length; i++) {
+    container.appendChild(buatKartuPengajuan(items[i]));
+  }
+}
+
+/**
+ * Kartu satu pengajuan; seluruh teks pengguna dirender via textContent.
+ * @param {Object} item
+ * @returns {HTMLElement}
+ */
+function buatKartuPengajuan(item) {
+  const card = document.createElement('div');
+  card.style.cssText = 'padding: var(--space-3); border: 1px solid var(--surface-border); border-radius: var(--radius-md); background: var(--surface);';
+
+  const headerRow = document.createElement('div');
+  headerRow.style.cssText = 'display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-2); margin-bottom: 4px; flex-wrap: wrap;';
+
+  const statusBadge = document.createElement('span');
+  statusBadge.className = 'badge badge-' + getStatusBadgeClass(item.status);
+  statusBadge.textContent = item.status;
+  headerRow.appendChild(statusBadge);
+
+  const tglEl = document.createElement('span');
+  tglEl.className = 'text-sm text-muted';
+  tglEl.textContent = item.tanggal;
+  headerRow.appendChild(tglEl);
+  card.appendChild(headerRow);
+
+  const titleEl = document.createElement('div');
+  titleEl.style.cssText = 'font-weight: 700; font-size: var(--font-base); margin-bottom: 4px;';
+  titleEl.textContent = item.jenis + ' \u2022 ' + item.nama_mapel +
+    (item.jam_mulai ? ' (' + item.jam_mulai + ' - ' + item.jam_selesai + ')' : '') +
+    ' \u2022 ' + item.nama_kelas;
+  card.appendChild(titleEl);
+
+  const siswaEl = document.createElement('div');
+  siswaEl.className = 'text-sm';
+  siswaEl.style.marginBottom = '4px';
+  siswaEl.textContent = item.nama_siswa + ' (' + item.nis + ')';
+  card.appendChild(siswaEl);
+
+  const alasanEl = document.createElement('p');
+  alasanEl.className = 'text-sm text-muted';
+  alasanEl.style.cssText = 'margin-bottom: 6px; white-space: pre-wrap;';
+  alasanEl.textContent = 'Alasan: ' + item.alasan;
+  card.appendChild(alasanEl);
+
+  if (item.catatan_guru) {
+    const catatanEl = document.createElement('div');
+    catatanEl.className = 'text-sm';
+    catatanEl.style.cssText = 'font-style: italic; color: var(--text-muted); margin-bottom: 6px;';
+    catatanEl.textContent = 'Catatan guru: ' + item.catatan_guru;
+    card.appendChild(catatanEl);
+  }
+
+  if (item.diproses_oleh) {
+    const prosesEl = document.createElement('div');
+    prosesEl.className = 'text-sm text-muted';
+    prosesEl.style.marginBottom = '6px';
+    prosesEl.textContent = 'Diproses oleh: ' + item.diproses_oleh +
+      (item.diproses_pada ? ' pada ' + item.diproses_pada : '');
+    card.appendChild(prosesEl);
+  }
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'btn btn-primary btn-sm';
+  btn.textContent = item.ada_bukti ? 'Lihat Bukti & Proses' : 'Periksa & Proses';
+  btn.onclick = (function (idIzin) {
+    return function () { bukaModalProsesPengajuan(idIzin); };
+  })(item.id_izin);
+  card.appendChild(btn);
+
+  return card;
+}
+
+/**
+ * Buka modal detail + pratinjau bukti + aksi keputusan.
+ * @param {string} idIzin
+ */
+function bukaModalProsesPengajuan(idIzin) {
+  const item = daftarPengajuanGuru.find(function (x) { return x.id_izin === idIzin; }) || null;
+  if (!item) return;
+  pengajuanDiproses = item;
+
+  const infoEl = document.getElementById('modal-proses-info');
+  if (infoEl) {
+    infoEl.innerHTML = '';
+    const judul = document.createElement('strong');
+    judul.textContent = item.jenis + ' \u2022 ' + item.nama_mapel + ' \u2022 ' + item.nama_kelas +
+      ' \u2022 ' + item.tanggal;
+    const sub = document.createElement('div');
+    sub.className = 'text-muted';
+    sub.textContent = item.nama_siswa + ' (' + item.nis + ')';
+    const alasan = document.createElement('div');
+    alasan.style.cssText = 'white-space: pre-wrap; margin-top: 4px;';
+    alasan.textContent = 'Alasan: ' + item.alasan;
+    infoEl.appendChild(judul);
+    infoEl.appendChild(sub);
+    infoEl.appendChild(alasan);
+  }
+
+  const catatanEl = document.getElementById('persetujuan-catatan');
+  if (catatanEl) catatanEl.value = item.catatan_guru || '';
+
+  const previewEl = document.getElementById('modal-proses-preview');
+  if (previewEl) {
+    previewEl.innerHTML = '';
+    const note = document.createElement('p');
+    note.className = 'text-muted text-sm';
+    note.id = 'modal-proses-preview-note';
+    note.style.margin = '0';
+    note.textContent = item.ada_bukti ? 'Memuat bukti...' : 'Bukti belum diunggah.';
+    previewEl.appendChild(note);
+  }
+
+  const modal = document.getElementById('modal-proses-pengajuan');
+  if (modal) {
+    modal.removeAttribute('hidden');
+    modal.classList.add('open');
+  }
+
+  if (item.ada_bukti) muatPratinjauBukti(item.id_izin);
+}
+
+function tutupModalProsesPengajuan() {
+  pengajuanDiproses = null;
+  const modal = document.getElementById('modal-proses-pengajuan');
+  if (modal) {
+    modal.classList.remove('open');
+    modal.setAttribute('hidden', '');
+  }
+}
+
+/**
+ * Ambil isi berkas dari server sebagai data URL (link_bukti tidak dikirim).
+ * @param {string} idIzin
+ */
+function muatPratinjauBukti(idIzin) {
+  const token = getStoredToken();
+  if (!token) return;
+  if (typeof google === 'undefined' || !google.script || !google.script.run) return;
+
+  google.script.run
+    .withSuccessHandler(function (res) {
+      renderPratinjauBukti(res);
+    })
+    .withFailureHandler(function (err) {
+      const previewEl = document.getElementById('modal-proses-preview');
+      if (previewEl) {
+        previewEl.innerHTML = '';
+        const note = document.createElement('p');
+        note.className = 'text-sm';
+        note.style.cssText = 'margin: 0; color: var(--color-alpa);';
+        note.textContent = err.message || 'Gagal memuat bukti.';
+        previewEl.appendChild(note);
+      }
+    })
+    .getBuktiPengajuan(token, idIzin);
+}
+
+/**
+ * Render pratinjau bukti: gambar untuk image/*, iframe untuk PDF.
+ * @param {Object} res - { mime, nama, data_url }
+ */
+function renderPratinjauBukti(res) {
+  const previewEl = document.getElementById('modal-proses-preview');
+  if (!previewEl) return;
+  previewEl.innerHTML = '';
+
+  const url = String((res && res.data_url) || '');
+  const mime = String((res && res.mime) || '');
+  if (url.indexOf('data:') !== 0) {
+    const note = document.createElement('p');
+    note.className = 'text-muted text-sm';
+    note.style.margin = '0';
+    note.textContent = 'Pratinjau tidak tersedia.';
+    previewEl.appendChild(note);
+    return;
+  }
+
+  if (mime.indexOf('image/') === 0) {
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = 'Bukti ' + String((res && res.nama) || '');
+    img.style.cssText = 'max-width: 100%; border-radius: var(--radius-md); display: block;';
+    previewEl.appendChild(img);
+    return;
+  }
+
+  const frame = document.createElement('iframe');
+  frame.src = url;
+  frame.title = 'Pratinjau bukti ' + String((res && res.nama) || '');
+  frame.style.cssText = 'width: 100%; height: 420px; border: 1px solid var(--surface-border); border-radius: var(--radius-md);';
+  previewEl.appendChild(frame);
+}
+
+/**
+ * Kirim keputusan guru (Disetujui / Ditolak) dengan catatan opsional.
+ * @param {'Disetujui'|'Ditolak'} keputusan
+ */
+function kirimKeputusanPengajuan(keputusan) {
+  const token = getStoredToken();
+  if (!token || !pengajuanDiproses) return;
+
+  const catatanEl = document.getElementById('persetujuan-catatan');
+  const catatan = catatanEl ? catatanEl.value.trim() : '';
+  const idIzin = pengajuanDiproses.id_izin;
+  const btnSetuju = document.getElementById('btn-setuju-pengajuan');
+  const btnTolak = document.getElementById('btn-tolak-pengajuan');
+
+  if (btnSetuju) btnSetuju.disabled = true;
+  if (btnTolak) btnTolak.disabled = true;
+
+  if (typeof google === 'undefined' || !google.script || !google.script.run) {
+    if (btnSetuju) btnSetuju.disabled = false;
+    if (btnTolak) btnTolak.disabled = false;
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler(function (res) {
+      if (btnSetuju) btnSetuju.disabled = false;
+      if (btnTolak) btnTolak.disabled = false;
+      showToast(res.message || 'Keputusan tersimpan.', 'success');
+      tutupModalProsesPengajuan();
+      muatPengajuanGuru();
+    })
+    .withFailureHandler(function (err) {
+      if (btnSetuju) btnSetuju.disabled = false;
+      if (btnTolak) btnTolak.disabled = false;
+      showToast(err.message || 'Gagal menyimpan keputusan.', 'error');
+    })
+    .prosesPengajuan(token, idIzin, keputusan, catatan);
+}
+</script>

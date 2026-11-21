@@ -1,0 +1,93 @@
+<!-- ====================================================================
+     PAGE 1: LOGIN (data-page="login") - TANPA PILIHAN ROLE
+     ==================================================================== -->
+<div id="page-login" class="page active" data-page="login">
+  <div
+    style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: var(--space-4); background-color: var(--surface-alt);">
+    <div class="card" style="width: 100%; max-width: 420px; box-shadow: var(--shadow-lg);">
+      <div class="card-body" style="padding: var(--space-6);">
+        <div style="text-align: center; margin-bottom: var(--space-6);">
+          <div
+            style="width: 56px; height: 56px; margin: 0 auto var(--space-3); background: var(--primary-subtle); color: var(--primary); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"></path>
+              <path d="M6 6h10"></path>
+              <path d="M6 10h10"></path>
+            </svg>
+          </div>
+          <h1 class="page-title" style="font-size: var(--font-xl);">Aplikasi Presensi</h1>
+          <p class="page-subtitle">Sistem Kehadiran Siswa Berbasis Web</p>
+        </div>
+
+        <div id="login-alert-slot" data-slot="alert-container"></div>
+
+        <form id="form-login" onsubmit="event.preventDefault(); handleLoginSubmit();">
+          <div class="form-group">
+            <label class="form-label" for="login-username">Username (NIP / NIS)</label>
+            <input type="text" id="login-username" class="form-control"
+              placeholder="Contoh: admin / 19800101... / 1001" required autocomplete="username">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="login-password">Password</label>
+            <input type="password" id="login-password" class="form-control" placeholder="Masukkan password" required
+              autocomplete="current-password">
+          </div>
+
+          <button type="submit" id="btn-login-submit" class="btn btn-primary btn-block" style="margin-top: var(--space-4);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+              <polyline points="10 17 15 12 10 7" />
+              <line x1="15" y1="12" x2="3" y2="12" />
+            </svg>
+            Masuk ke Aplikasi
+          </button>
+        </form>
+      </div>
+      <div class="card-footer" style="justify-content: center;">
+        <span class="text-sm text-muted">Aplikasi Presensi Sekolah &bull; Role Ditentukan Server</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================================
+     MODAL GANTI PASSWORD (WAJIB SAAT LOGIN PERTAMA / BISA DIAKSES PENGGUNA)
+     ==================================================================== -->
+<div class="modal-backdrop" id="modal-change-password" role="dialog" aria-modal="true" aria-labelledby="modal-cp-title" hidden>
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3 class="card-title" id="modal-cp-title">Ganti Password</h3>
+      <button type="button" class="btn-close" id="btn-close-cp" onclick="closeChangePasswordModal()" aria-label="Tutup">&times;</button>
+    </div>
+    <form id="form-change-password" onsubmit="event.preventDefault(); handleChangePasswordSubmit();">
+      <div class="modal-body">
+        <div id="change-pass-alert-slot"></div>
+        <p class="text-sm text-muted" id="cp-instruction-text" style="margin-bottom: var(--space-4);">
+          Password baru minimal <strong>8 karakter</strong> dan tidak boleh sama dengan username atau NIS/NIP.
+        </p>
+
+        <div class="form-group">
+          <label class="form-label" for="input-pass-lama">Password Lama</label>
+          <input type="password" id="input-pass-lama" class="form-control" placeholder="Masukkan password saat ini" required autocomplete="current-password">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="input-pass-baru">Password Baru</label>
+          <input type="password" id="input-pass-baru" class="form-control" placeholder="Minimal 8 karakter" required minlength="8" autocomplete="new-password">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="input-pass-konfirmasi">Konfirmasi Password Baru</label>
+          <input type="password" id="input-pass-konfirmasi" class="form-control" placeholder="Ulangi password baru" required minlength="8" autocomplete="new-password">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btn-cancel-cp" onclick="handleCancelChangePassword()">Batal & Keluar</button>
+        <button type="submit" class="btn btn-primary" id="btn-change-pass-submit">Simpan Password Baru</button>
+      </div>
+    </form>
+  </div>
+</div>
+

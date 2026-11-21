@@ -1,0 +1,3213 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aplikasi Presensi Sekolah</title>
+  <style>
+/* ==========================================================================
+   DESIGN TOKENS & CSS VARIABLES
+   ========================================================================== */
+:root {
+  /* Colors */
+  --primary: #1e40af;
+  --primary-hover: #1d4ed8;
+  --primary-subtle: #eff6ff;
+  --surface: #ffffff;
+  --surface-alt: #f8fafc;
+  --surface-muted: #f1f5f9;
+  --surface-border: #cbd5e1;
+  --border-focus: #2563eb;
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --text-inverse: #ffffff;
+
+  /* Status Presensi */
+  --color-hadir: #15803d;
+  --bg-hadir: #dcfce7;
+  --border-hadir: #86efac;
+
+  --color-izin: #0369a1;
+  --bg-izin: #e0f2fe;
+  --border-izin: #7dd3fc;
+
+  --color-sakit: #b45309;
+  --bg-sakit: #fef3c7;
+  --border-sakit: #fcd34d;
+
+  --color-alpa: #b91c1c;
+  --bg-alpa: #fee2e2;
+  --border-alpa: #fca5a5;
+
+  /* Status Pengajuan Izin */
+  --color-wait-doc: #6b21a8;
+  --bg-wait-doc: #f3e8ff;
+  --border-wait-doc: #d8b4fe;
+
+  --color-wait-appr: #854d0e;
+  --bg-wait-appr: #fef9c3;
+  --border-wait-appr: #fde047;
+
+  --color-approved: #15803d;
+  --bg-approved: #dcfce7;
+  --border-approved: #86efac;
+
+  --color-rejected: #9f1239;
+  --bg-rejected: #ffe4e6;
+  --border-rejected: #fda4af;
+
+  /* Typography */
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-xs: 0.75rem;
+  --font-sm: 0.875rem;
+  --font-base: 1rem;
+  --font-lg: 1.125rem;
+  --font-xl: 1.25rem;
+  --font-2xl: 1.5rem;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+
+  /* Touch & Accessibility */
+  --min-target: 44px;
+  --sidebar-w: 250px;
+  --topbar-h: 60px;
+}
+
+/* ==========================================================================
+   RESET & BASE STYLES
+   ========================================================================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-base);
+  line-height: 1.5;
+  color: var(--text-main);
+  background-color: var(--surface-alt);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* Accessible Focus Ring */
+:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+/* Visibility & Accessibility Helper */
+[hidden], .is-hidden {
+  display: none !important;
+}
+
+/* ==========================================================================
+   LAYOUT FRAMEWORK
+   ========================================================================== */
+.app-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Topbar */
+.topbar {
+  position: sticky;
+  top: 0;
+  height: var(--topbar-h);
+  background: var(--surface);
+  border-bottom: 1px solid var(--surface-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-4);
+  z-index: 30;
+}
+
+.topbar-left, .topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.brand-title {
+  font-size: var(--font-lg);
+  font-weight: 700;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Sidebar Drawer */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--sidebar-w);
+  background: var(--surface);
+  border-right: 1px solid var(--surface-border);
+  display: flex;
+  flex-direction: column;
+  z-index: 50;
+  transform: translateX(-100%);
+  transition: transform 0.25s ease;
+}
+
+.sidebar.open {
+  transform: translateX(0);
+}
+
+.sidebar-header {
+  height: var(--topbar-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-4);
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-3) var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.nav-section-title {
+  font-size: var(--font-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 700;
+  padding: var(--space-2) var(--space-3) var(--space-1);
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--text-main);
+  font-weight: 500;
+  font-size: var(--font-sm);
+  min-height: var(--min-target);
+  border: 1px solid transparent;
+  cursor: pointer;
+  background: none;
+  text-align: left;
+  width: 100%;
+}
+
+.nav-item:hover {
+  background-color: var(--surface-muted);
+  text-decoration: none;
+}
+
+.nav-item.active {
+  background-color: var(--primary-subtle);
+  color: var(--primary);
+  font-weight: 600;
+  border-color: #bfdbfe;
+}
+
+.nav-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.sidebar-footer {
+  padding: var(--space-4);
+  border-top: 1px solid var(--surface-border);
+  background: var(--surface-alt);
+}
+
+.user-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--primary-subtle);
+  color: var(--primary);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-sm);
+  border: 1px solid #bfdbfe;
+}
+
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  z-index: 45;
+  display: none;
+}
+.sidebar-backdrop.open {
+  display: block;
+}
+
+/* Main Area */
+.main-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+
+.main-content {
+  flex: 1;
+  padding: var(--space-4);
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .sidebar {
+    transform: translateX(0);
+  }
+  .sidebar-backdrop {
+    display: none !important;
+  }
+  .main-wrapper {
+    margin-left: var(--sidebar-w);
+  }
+  .menu-toggle {
+    display: none !important;
+  }
+  .main-content {
+    padding: var(--space-6);
+  }
+}
+
+/* ==========================================================================
+   PAGE SECTIONS (SHOW / HIDE)
+   ========================================================================== */
+.page {
+  display: none;
+}
+
+.page:not(.active) {
+  display: none !important;
+}
+
+.page.active:not([hidden]) {
+  display: block;
+  animation: fadeIn 0.15s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   PAGE HEADER & BREADCRUMBS
+   ========================================================================== */
+.page-header {
+  margin-bottom: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+@media (min-width: 640px) {
+  .page-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.page-title {
+  font-size: var(--font-2xl);
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.25;
+}
+
+.page-subtitle {
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   BUTTONS
+   ========================================================================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--min-target);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-sm);
+  font-weight: 600;
+  font-family: inherit;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+.btn:hover {
+  text-decoration: none;
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: var(--text-inverse);
+}
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+}
+
+.btn-secondary {
+  background-color: var(--surface-muted);
+  color: var(--text-main);
+  border-color: var(--surface-border);
+}
+.btn-secondary:hover {
+  background-color: #e2e8f0;
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: var(--primary);
+  border-color: var(--primary);
+}
+.btn-outline:hover {
+  background-color: var(--primary-subtle);
+}
+
+.btn-success {
+  background-color: var(--color-hadir);
+  color: var(--text-inverse);
+}
+.btn-success:hover {
+  background-color: #166534;
+}
+
+.btn-danger {
+  background-color: var(--color-alpa);
+  color: var(--text-inverse);
+}
+.btn-danger:hover {
+  background-color: #991b1b;
+}
+
+.btn-sm {
+  min-height: 36px;
+  padding: 6px 12px;
+  font-size: var(--font-xs);
+}
+
+.btn-block {
+  width: 100%;
+}
+
+/* ==========================================================================
+   CARDS & GRIDS
+   ========================================================================== */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-4);
+  overflow: hidden;
+}
+
+.card-header {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--surface-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface);
+}
+
+.card-title {
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.card-body {
+  padding: var(--space-4);
+}
+
+.card-footer {
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--surface-border);
+  background: var(--surface-alt);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* Metric Cards */
+.grid {
+  display: grid;
+  gap: var(--space-4);
+}
+.grid-cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.grid-cols-3 {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+.grid-cols-4 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1024px) {
+  .grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.metric-card {
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.metric-icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.metric-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.metric-label {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+
+.metric-value {
+  font-size: var(--font-2xl);
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.1;
+}
+
+.metric-sub {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* ==========================================================================
+   FORM CONTROLS
+   ========================================================================== */
+.form-group {
+  margin-bottom: var(--space-4);
+}
+
+.form-label {
+  display: block;
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: var(--space-1);
+}
+
+.form-control, .form-select {
+  width: 100%;
+  min-height: var(--min-target);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-base);
+  font-family: inherit;
+  color: var(--text-main);
+  background-color: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: var(--border-focus);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+textarea.form-control {
+  min-height: 90px;
+  resize: vertical;
+}
+
+.form-help {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+  margin-top: var(--space-1);
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+@media (min-width: 640px) {
+  .form-row {
+    flex-direction: row;
+    align-items: center;
+  }
+  .form-row .form-group {
+    flex: 1;
+    margin-bottom: 0;
+  }
+}
+
+/* ==========================================================================
+   BADGES (STATUS WITH ICONS & HIGH CONTRAST)
+   ========================================================================== */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: var(--font-xs);
+  font-weight: 700;
+  border-radius: var(--radius-full);
+  line-height: 1.2;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background-color: currentColor;
+}
+
+.badge-hadir {
+  background: var(--bg-hadir);
+  color: var(--color-hadir);
+  border-color: var(--border-hadir);
+}
+
+.badge-izin {
+  background: var(--bg-izin);
+  color: var(--color-izin);
+  border-color: var(--border-izin);
+}
+
+.badge-sakit {
+  background: var(--bg-sakit);
+  color: var(--color-sakit);
+  border-color: var(--border-sakit);
+}
+
+.badge-alpa {
+  background: var(--bg-alpa);
+  color: var(--color-alpa);
+  border-color: var(--border-alpa);
+}
+
+.badge-wait-doc {
+  background: var(--bg-wait-doc);
+  color: var(--color-wait-doc);
+  border-color: var(--border-wait-doc);
+}
+
+.badge-wait-appr {
+  background: var(--bg-wait-appr);
+  color: var(--color-wait-appr);
+  border-color: var(--border-wait-appr);
+}
+
+.badge-approved {
+  background: var(--bg-approved);
+  color: var(--color-approved);
+  border-color: var(--border-approved);
+}
+
+.badge-rejected {
+  background: var(--bg-rejected);
+  color: var(--color-rejected);
+  border-color: var(--border-rejected);
+}
+
+.badge-sudah {
+  background: var(--bg-hadir);
+  color: var(--color-hadir);
+  border-color: var(--border-hadir);
+}
+
+.badge-belum {
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  border-color: var(--surface-border);
+}
+
+/* ==========================================================================
+   RESPONSIVE TABLES
+   ========================================================================== */
+.table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-4);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-sm);
+  text-align: left;
+}
+
+.table th {
+  background: var(--surface-alt);
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: var(--font-xs);
+  letter-spacing: 0.05em;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--surface-border);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--surface-border);
+  vertical-align: middle;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.table tr:hover td {
+  background-color: var(--surface-alt);
+}
+
+.table-row-error {
+  background-color: #fff1f2 !important;
+  border-left: 4px solid var(--color-alpa);
+}
+
+.table-row-valid {
+  background-color: #f0fdf4 !important;
+  border-left: 4px solid var(--color-hadir);
+}
+
+/* ==========================================================================
+   ATTENDANCE STATUS SELECTOR (MOBILE-FRIENDLY SEGMENTED CONTROLS)
+   ========================================================================== */
+.attendance-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.attendance-card {
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  box-shadow: var(--shadow-sm);
+}
+
+.attendance-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+
+.student-info {
+  font-weight: 600;
+  font-size: var(--font-sm);
+  color: var(--text-main);
+}
+.student-nis {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+  font-weight: normal;
+}
+
+.status-group {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-1);
+  margin-bottom: var(--space-2);
+}
+
+.status-btn-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--min-target);
+  font-size: var(--font-sm);
+  font-weight: 700;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  background: var(--surface);
+  color: var(--text-muted);
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.status-radio {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Checked styling per status */
+.status-radio[value="Hadir"]:checked + .status-btn-label {
+  background: var(--bg-hadir);
+  color: var(--color-hadir);
+  border-color: var(--color-hadir);
+  box-shadow: 0 0 0 1px var(--color-hadir);
+}
+
+.status-radio[value="Izin"]:checked + .status-btn-label {
+  background: var(--bg-izin);
+  color: var(--color-izin);
+  border-color: var(--color-izin);
+  box-shadow: 0 0 0 1px var(--color-izin);
+}
+
+.status-radio[value="Sakit"]:checked + .status-btn-label {
+  background: var(--bg-sakit);
+  color: var(--color-sakit);
+  border-color: var(--color-sakit);
+  box-shadow: 0 0 0 1px var(--color-sakit);
+}
+
+.status-radio[value="Alpa"]:checked + .status-btn-label {
+  background: var(--bg-alpa);
+  color: var(--color-alpa);
+  border-color: var(--color-alpa);
+  box-shadow: 0 0 0 1px var(--color-alpa);
+}
+
+/* ==========================================================================
+   MODAL DIALOG
+   ========================================================================== */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.6);
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  backdrop-filter: blur(2px);
+}
+
+.modal-backdrop:not(.open) {
+  display: none !important;
+}
+
+.modal-backdrop.open:not([hidden]) {
+  display: flex;
+}
+
+.modal-dialog {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--surface-border);
+  animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalPop {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.modal-header {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--surface-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-body {
+  padding: var(--space-4);
+  overflow-y: auto;
+}
+
+.modal-footer {
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--surface-border);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  background: var(--surface-alt);
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  font-size: var(--font-xl);
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: var(--space-1);
+  min-width: 36px;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+}
+.btn-close:hover {
+  background: var(--surface-muted);
+  color: var(--text-main);
+}
+
+/* ==========================================================================
+   FEEDBACK: TOAST, ALERT, EMPTY STATE, SPINNER
+   ========================================================================== */
+.toast-container {
+  position: fixed;
+  bottom: var(--space-4);
+  right: var(--space-4);
+  z-index: 110;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 360px;
+  width: calc(100% - 32px);
+}
+
+.toast {
+  background: var(--surface);
+  color: var(--text-main);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--surface-border);
+  border-left: 4px solid var(--primary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-sm);
+  animation: slideUp 0.2s ease-out;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.toast-success { border-left-color: var(--color-hadir); }
+.toast-error { border-left-color: var(--color-alpa); }
+
+.alert {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--font-sm);
+  margin-bottom: var(--space-4);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  border: 1px solid transparent;
+}
+
+.alert-info {
+  background-color: var(--primary-subtle);
+  color: var(--primary);
+  border-color: #bfdbfe;
+}
+
+.alert-warning {
+  background-color: var(--bg-sakit);
+  color: var(--color-sakit);
+  border-color: var(--border-sakit);
+}
+
+.empty-state {
+  text-align: center;
+  padding: var(--space-8) var(--space-4);
+  background: var(--surface);
+  border: 1px dashed var(--surface-border);
+  border-radius: var(--radius-lg);
+}
+
+.empty-state-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto var(--space-3);
+  color: var(--text-muted);
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--surface-border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   DOCUMENT PREVIEW BOX (MOCKUP SURAT DOKTER / IZIN)
+   ========================================================================== */
+.doc-preview-box {
+  background: var(--surface-muted);
+  border: 2px dashed var(--surface-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-6);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.doc-preview-box.has-file {
+  background: var(--surface);
+  border-style: solid;
+  border-color: var(--surface-border);
+}
+
+/* ==========================================================================
+   ROLE DEMO SWITCHER IN TOPBAR
+   ========================================================================== */
+.role-pill {
+  font-size: var(--font-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--primary-subtle);
+  color: var(--primary);
+  border: 1px solid #bfdbfe;
+}
+</style>
+
+
+</head>
+
+<body>
+
+  <!-- ====================================================================
+       PAGE 1: LOGIN (data-page="login")
+       ==================================================================== -->
+  <div id="page-login" class="page active" data-page="login">
+    <div
+      style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: var(--space-4); background-color: var(--surface-alt);">
+      <div class="card" style="width: 100%; max-width: 420px; box-shadow: var(--shadow-lg);">
+        <div class="card-body" style="padding: var(--space-6);">
+          <div style="text-align: center; margin-bottom: var(--space-6);">
+            <div
+              style="width: 56px; height: 56px; margin: 0 auto var(--space-3); background: var(--primary-subtle); color: var(--primary); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center;">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"></path>
+                <path d="M6 6h10"></path>
+                <path d="M6 10h10"></path>
+              </svg>
+            </div>
+            <h1 class="page-title" style="font-size: var(--font-xl);">Aplikasi Presensi</h1>
+            <p class="page-subtitle">Sistem Kehadiran Siswa Berbasis Web</p>
+          </div>
+
+          <div id="login-alert-slot" data-slot="alert-container"></div>
+
+          <form id="form-login" onsubmit="event.preventDefault(); handleLoginSubmit();">
+            <div class="form-group">
+              <label class="form-label" for="login-username">Username (NIP / NIS)</label>
+              <input type="text" id="login-username" class="form-control"
+                placeholder="Contoh: admin / 19800101... / 1001" required value="guru.matematika">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="login-password">Password</label>
+              <input type="password" id="login-password" class="form-control" placeholder="Masukkan password" required
+                value="password123">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block" style="margin-top: var(--space-4);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                <polyline points="10 17 15 12 10 7" />
+                <line x1="15" y1="12" x2="3" y2="12" />
+              </svg>
+              Masuk ke Aplikasi
+            </button>
+          </form>
+        </div>
+        <div class="card-footer" style="justify-content: center;">
+          <span class="text-sm text-muted">Aplikasi Presensi Sekolah &bull; Tahun Ajaran 2026/2027</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       PAGE 2: BASE FRAMEWORK (TOPBAR + SIDEBAR + MAIN AREA)
+       ==================================================================== -->
+  <div id="app-framework" style="display: none;" hidden>
+    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar(false)"></div>
+
+    <aside class="sidebar" id="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-title">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+            <path d="M6 6h10" />
+            <path d="M6 10h10" />
+          </svg>
+          Presensi App
+        </div>
+        <button type="button" class="btn-close" style="display: none;" id="sidebar-close-btn"
+          onclick="toggleSidebar(false)" aria-label="Tutup Menu">&times;</button>
+      </div>
+
+      <nav class="sidebar-nav" id="sidebar-nav-container">
+        <!-- Menu Admin -->
+        <div class="role-menu-section" data-role-section="Admin">
+          <div class="nav-section-title">Menu Admin</div>
+          <button type="button" class="nav-item" data-target="dashboard-admin" onclick="navigateTo('dashboard-admin')">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+            </svg>
+            Dashboard Admin
+          </button>
+          <button type="button" class="nav-item" data-target="master-siswa" onclick="navigateTo('master-siswa')">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            Data Master Siswa
+          </button>
+          <button type="button" class="nav-item" data-target="import-data" onclick="navigateTo('import-data')">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Import Data Paste
+          </button>
+        </div>
+
+        <!-- Menu Guru -->
+        <div class="role-menu-section" data-role-section="Guru">
+          <div class="nav-section-title">Menu Guru</div>
+          <button type="button" class="nav-item" data-target="dashboard-guru" onclick="navigateTo('dashboard-guru')">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+            </svg>
+            Dashboard Guru
+          </button>
+          <button type="button" class="nav-item" data-target="jadwal-guru" onclick="navigateTo('jadwal-guru')">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            Jadwal & Presensi
+          </button>
+          <button type="button" class="nav-item" data-target="persetujuan-guru"
+            onclick="navigateTo('persetujuan-guru')">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <path d="m9 15 2 2 4-4" />
+            </svg>
+            Persetujuan Izin
+          </button>
+        </div>
+
+        <!-- Menu Siswa -->
+        <div class="role-menu-section" data-role-section="Siswa">
+          <div class="nav-section-title">Menu Siswa</div>
+          <button type="button" class="nav-item" data-target="dashboard-siswa" onclick="navigateTo('dashboard-siswa')">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+            </svg>
+            Dashboard Siswa
+          </button>
+          <button type="button" class="nav-item" data-target="pengajuan-siswa" onclick="navigateTo('pengajuan-siswa')">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+            </svg>
+            Pengajuan Sakit/Izin
+          </button>
+        </div>
+
+        <!-- Menu Umum / Rekap -->
+        <div class="nav-section-title">Laporan</div>
+        <button type="button" class="nav-item" data-target="rekap-presensi" onclick="navigateTo('rekap-presensi')">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="20" x2="18" y2="10" />
+            <line x1="12" y1="20" x2="12" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="14" />
+          </svg>
+          Rekap Kehadiran
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-badge">
+          <div class="avatar" id="sidebar-avatar" data-slot="user-avatar">BP</div>
+          <div style="flex: 1; min-width: 0;">
+            <div
+              style="font-size: var(--font-sm); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+              id="sidebar-user-name" data-slot="user-name">Budi Pratama, S.Pd</div>
+            <div style="font-size: var(--font-xs); color: var(--text-muted);" id="sidebar-user-role"
+              data-slot="user-role">Guru Matematika</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main-wrapper">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button type="button" class="btn btn-secondary btn-sm menu-toggle" onclick="toggleSidebar(true)"
+            aria-label="Buka Menu" style="padding: 8px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+          <span class="role-pill" id="topbar-role-badge">GURU</span>
+          <!-- Navigasi Cepat untuk Testing 10 Halaman -->
+          <select id="quick-page-jump" class="form-select"
+            style="min-height: 36px; padding: 4px 10px; font-size: var(--font-xs); width: auto;"
+            onchange="navigateTo(this.value)">
+            <option disabled>-- Uji Cepat 10 Halaman --</option>
+            <option value="login">1. Halaman Login</option>
+            <option value="dashboard-admin">3a. Dashboard Admin</option>
+            <option value="dashboard-guru">3b. Dashboard Guru</option>
+            <option value="dashboard-siswa">3c. Dashboard Siswa</option>
+            <option value="master-siswa">4. Master Data Siswa</option>
+            <option value="import-data">5. Import Data Paste</option>
+            <option value="jadwal-guru">6. Jadwal Hari Ini</option>
+            <option value="form-presensi">7. Form Presensi</option>
+            <option value="pengajuan-siswa">8. Pengajuan Siswa</option>
+            <option value="persetujuan-guru">9. Persetujuan Guru</option>
+            <option value="rekap-presensi">10. Rekap & Ekspor</option>
+          </select>
+        </div>
+        <div class="topbar-right">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="logoutApp()" title="Keluar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            <span style="display: none; @media(min-width: 640px){display:inline;}">Keluar</span>
+          </button>
+        </div>
+      </header>
+
+      <main class="main-content">
+
+        <!-- ==================================================================
+             PAGE 3A: DASHBOARD ADMIN (data-page="dashboard-admin")
+             ================================================================== -->
+        <section class="page" id="page-dashboard-admin" data-page="dashboard-admin" hidden>
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">Dashboard Admin</h2>
+              <p class="page-subtitle">Ringkasan data induk sekolah dan aktivitas presensi hari ini</p>
+            </div>
+            <div>
+              <span class="badge badge-hadir">Semester 2026/2027 Ganjil (Aktif)</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-4" style="margin-bottom: var(--space-6);">
+            <div class="metric-card">
+              <div class="metric-icon-box" style="background: var(--primary-subtle); color: var(--primary);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+              </div>
+              <div class="metric-info">
+                <div class="metric-label">Total Siswa</div>
+                <div class="metric-value" data-slot="metric-siswa">720</div>
+                <div class="metric-sub">Terdaftar di 24 Kelas</div>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon-box" style="background: var(--bg-izin); color: var(--color-izin);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </div>
+              <div class="metric-info">
+                <div class="metric-label">Total Guru</div>
+                <div class="metric-value" data-slot="metric-guru">48</div>
+                <div class="metric-sub">Pengajar Mapel Aktif</div>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon-box" style="background: var(--bg-wait-doc); color: var(--color-wait-doc);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                </svg>
+              </div>
+              <div class="metric-info">
+                <div class="metric-label">Total Kelas</div>
+                <div class="metric-value" data-slot="metric-kelas">24</div>
+                <div class="metric-sub">Tingkat X, XI, XII</div>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon-box" style="background: var(--bg-hadir); color: var(--color-hadir);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+              </div>
+              <div class="metric-info">
+                <div class="metric-label">Kehadiran Hari Ini</div>
+                <div class="metric-value" data-slot="metric-presensi-pct">94.2%</div>
+                <div class="metric-sub">678 Hadir / 720 Siswa</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Ringkasan Status Presensi Hari Ini (Semua Kelas)</h3>
+              <button class="btn btn-secondary btn-sm" onclick="navigateTo('rekap-presensi')">Lihat Rekap
+                Lengkap</button>
+            </div>
+            <div class="card-body">
+              <div class="grid grid-cols-4">
+                <div
+                  style="padding: var(--space-3); border-radius: var(--radius-md); background: var(--bg-hadir); border: 1px solid var(--border-hadir);">
+                  <div style="font-size: var(--font-xs); color: var(--color-hadir); font-weight: 700;">HADIR</div>
+                  <div style="font-size: var(--font-2xl); font-weight: 800; color: var(--color-hadir);">678</div>
+                  <div style="font-size: var(--font-xs); color: var(--color-hadir);">94.2% dari siswa</div>
+                </div>
+                <div
+                  style="padding: var(--space-3); border-radius: var(--radius-md); background: var(--bg-izin); border: 1px solid var(--border-izin);">
+                  <div style="font-size: var(--font-xs); color: var(--color-izin); font-weight: 700;">IZIN</div>
+                  <div style="font-size: var(--font-2xl); font-weight: 800; color: var(--color-izin);">24</div>
+                  <div style="font-size: var(--font-xs); color: var(--color-izin);">Surat orang tua</div>
+                </div>
+                <div
+                  style="padding: var(--space-3); border-radius: var(--radius-md); background: var(--bg-sakit); border: 1px solid var(--border-sakit);">
+                  <div style="font-size: var(--font-xs); color: var(--color-sakit); font-weight: 700;">SAKIT</div>
+                  <div style="font-size: var(--font-2xl); font-weight: 800; color: var(--color-sakit);">12</div>
+                  <div style="font-size: var(--font-xs); color: var(--color-sakit);">Surat dokter</div>
+                </div>
+                <div
+                  style="padding: var(--space-3); border-radius: var(--radius-md); background: var(--bg-alpa); border: 1px solid var(--border-alpa);">
+                  <div style="font-size: var(--font-xs); color: var(--color-alpa); font-weight: 700;">ALPA</div>
+                  <div style="font-size: var(--font-2xl); font-weight: 800; color: var(--color-alpa);">6</div>
+                  <div style="font-size: var(--font-xs); color: var(--color-alpa);">Tanpa keterangan</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 3B: DASHBOARD GURU (data-page="dashboard-guru")
+             ================================================================== -->
+        <section class="page" id="page-dashboard-guru" data-page="dashboard-guru" hidden>
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">Dashboard Guru</h2>
+              <p class="page-subtitle">Selamat datang, Budi Pratama, S.Pd (NIP: 198205122008011003)</p>
+            </div>
+            <div>
+              <button class="btn btn-primary" onclick="navigateTo('jadwal-guru')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+                Jadwal Mengajar Hari Ini
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3" style="margin-bottom: var(--space-6);">
+            <div class="metric-card">
+              <div class="metric-icon-box" style="background: var(--primary-subtle); color: var(--primary);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              </div>
+              <div class="metric-info">
+                <div class="metric-label">Jadwal Hari Ini</div>
+                <div class="metric-value">3 Sesi</div>
+                <div class="metric-sub">Matematika X & XI</div>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon-box" style="background: var(--bg-sakit); color: var(--color-sakit);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              </div>
+              <div class="metric-info">
+                <div class="metric-label">Presensi Belum Diisi</div>
+                <div class="metric-value">2 Sesi</div>
+                <div class="metric-sub">Perlu segera diambil</div>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon-box" style="background: var(--bg-wait-appr); color: var(--color-wait-appr);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                </svg>
+              </div>
+              <div class="metric-info">
+                <div class="metric-label">Pengajuan Izin Masuk</div>
+                <div class="metric-value">2 Siswa</div>
+                <div class="metric-sub">Menunggu persetujuan</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Agenda Mengajar Hari Ini (Senin, 15 Nov 2026)</h3>
+              <button class="btn btn-outline btn-sm" onclick="navigateTo('persetujuan-guru')">Cek Izin Siswa</button>
+            </div>
+            <div class="card-body">
+              <div class="grid grid-cols-3">
+                <div
+                  style="border: 1px solid var(--surface-border); border-radius: var(--radius-md); padding: var(--space-4);">
+                  <div
+                    style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-2);">
+                    <span class="badge badge-sudah"><span class="badge-dot"></span> Sudah Diisi</span>
+                    <span class="text-sm text-muted">07.30 - 09.00</span>
+                  </div>
+                  <h4 style="font-size: var(--font-base); font-weight: 700;">Matematika &bull; X-MIPA-1</h4>
+                  <p class="text-sm text-muted" style="margin-bottom: var(--space-3);">32 Siswa (30 Hadir, 1 Izin, 1
+                    Sakit)</p>
+                  <button class="btn btn-secondary btn-sm btn-block" onclick="navigateTo('form-presensi')">Edit
+                    Presensi</button>
+                </div>
+
+                <div
+                  style="border: 1px solid var(--surface-border); border-radius: var(--radius-md); padding: var(--space-4); border-left: 4px solid var(--primary);">
+                  <div
+                    style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-2);">
+                    <span class="badge badge-belum"><span class="badge-dot"></span> Belum Diisi</span>
+                    <span class="text-sm text-muted">09.15 - 10.45</span>
+                  </div>
+                  <h4 style="font-size: var(--font-base); font-weight: 700;">Fisika &bull; XI-MIPA-2</h4>
+                  <p class="text-sm text-muted" style="margin-bottom: var(--space-3);">32 Siswa (Sedang Berlangsung)</p>
+                  <button class="btn btn-primary btn-sm btn-block" onclick="navigateTo('form-presensi')">Isi Presensi
+                    Sekarang</button>
+                </div>
+
+                <div
+                  style="border: 1px solid var(--surface-border); border-radius: var(--radius-md); padding: var(--space-4);">
+                  <div
+                    style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-2);">
+                    <span class="badge badge-belum"><span class="badge-dot"></span> Belum Diisi</span>
+                    <span class="text-sm text-muted">11.00 - 12.30</span>
+                  </div>
+                  <h4 style="font-size: var(--font-base); font-weight: 700;">Matematika &bull; X-MIPA-2</h4>
+                  <p class="text-sm text-muted" style="margin-bottom: var(--space-3);">30 Siswa</p>
+                  <button class="btn btn-secondary btn-sm btn-block" onclick="navigateTo('form-presensi')">Isi
+                    Nanti</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 3C: DASHBOARD SISWA (data-page="dashboard-siswa")
+             ================================================================== -->
+        <section class="page" id="page-dashboard-siswa" data-page="dashboard-siswa" hidden>
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">Dashboard Siswa</h2>
+              <p class="page-subtitle">Ahmad Dahlan &bull; NIS: 1001 &bull; Kelas X-MIPA-1</p>
+            </div>
+            <div>
+              <button class="btn btn-primary" onclick="navigateTo('pengajuan-siswa')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Ajukan Sakit / Izin
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-4" style="margin-bottom: var(--space-6);">
+            <div class="metric-card">
+              <div class="metric-icon-box" style="background: var(--bg-hadir); color: var(--color-hadir);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+              </div>
+              <div class="metric-info">
+                <div class="metric-label">Kehadiran Total</div>
+                <div class="metric-value">96.0%</div>
+                <div class="metric-sub">Semester Ganjil 2026</div>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon-box" style="background: var(--bg-izin); color: var(--color-izin);">
+                <span style="font-weight: 800; font-size: var(--font-lg);">I</span>
+              </div>
+              <div class="metric-info">
+                <div class="metric-label">Izin</div>
+                <div class="metric-value">2 Kali</div>
+                <div class="metric-sub">Dengan surat izin</div>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon-box" style="background: var(--bg-sakit); color: var(--color-sakit);">
+                <span style="font-weight: 800; font-size: var(--font-lg);">S</span>
+              </div>
+              <div class="metric-info">
+                <div class="metric-label">Sakit</div>
+                <div class="metric-value">1 Kali</div>
+                <div class="metric-sub">Surat dokter diverifikasi</div>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon-box" style="background: var(--bg-alpa); color: var(--color-alpa);">
+                <span style="font-weight: 800; font-size: var(--font-lg);">A</span>
+              </div>
+              <div class="metric-info">
+                <div class="metric-label">Alpa</div>
+                <div class="metric-value">0 Kali</div>
+                <div class="metric-sub">Catatan sangat baik</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Status Pengajuan Terakhir Anda</h3>
+              <button class="btn btn-secondary btn-sm" onclick="navigateTo('pengajuan-siswa')">Riwayat Semua
+                Pengajuan</button>
+            </div>
+            <div class="card-body">
+              <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+                <div
+                  style="padding: var(--space-4); border: 1px solid var(--surface-border); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3);">
+                  <div>
+                    <div style="font-weight: 700; font-size: var(--font-base);">Izin &bull; Matematika (07.30 - 09.00)
+                    </div>
+                    <div class="text-sm text-muted">Tanggal: 15 Nov 2026 &bull; Alasan: Keperluan keluarga mendesak
+                    </div>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: var(--space-2);">
+                    <span class="badge badge-approved"><span class="badge-dot"></span> Disetujui</span>
+                    <span class="text-sm text-muted">oleh Budi Pratama, S.Pd</span>
+                  </div>
+                </div>
+
+                <div
+                  style="padding: var(--space-4); border: 1px solid var(--surface-border); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3);">
+                  <div>
+                    <div style="font-weight: 700; font-size: var(--font-base);">Sakit &bull; Fisika (09.15 - 10.45)
+                    </div>
+                    <div class="text-sm text-muted">Tanggal: 10 Nov 2026 &bull; Alasan: Demam dan flu</div>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: var(--space-2);">
+                    <span class="badge badge-approved"><span class="badge-dot"></span> Disetujui</span>
+                    <span class="text-sm text-muted">Surat dokter diterima</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 4: MASTER DATA SISWA (data-page="master-siswa")
+             ================================================================== -->
+        <section class="page" id="page-master-siswa" data-page="master-siswa" hidden>
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">Data Master Siswa</h2>
+              <p class="page-subtitle">Kelola informasi peserta didik, kelas, dan status kartu kontrol</p>
+            </div>
+            <div style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
+              <button class="btn btn-outline" onclick="navigateTo('import-data')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Import Data Siswa
+              </button>
+              <button class="btn btn-primary" onclick="openModal('modal-siswa')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Tambah Siswa
+              </button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-body">
+              <div class="form-row" style="margin-bottom: var(--space-4);">
+                <div class="form-group" style="flex: 2;">
+                  <input type="text" id="search-siswa" class="form-control"
+                    placeholder="Cari berdasarkan NIS atau Nama Siswa...">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                  <select id="filter-kelas-siswa" class="form-select">
+                    <option value="">Semua Kelas</option>
+                    <option value="X-MIPA-1" selected>X-MIPA-1</option>
+                    <option value="X-MIPA-2">X-MIPA-2</option>
+                    <option value="XI-MIPA-1">XI-MIPA-1</option>
+                    <option value="XI-MIPA-2">XI-MIPA-2</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="table-container">
+                <table class="table" id="table-master-siswa">
+                  <thead>
+                    <tr>
+                      <th style="width: 120px;">NIS</th>
+                      <th>Nama Lengkap Siswa</th>
+                      <th style="width: 140px;">Kelas</th>
+                      <th style="width: 150px;">Kartu Kontrol</th>
+                      <th style="width: 120px;">Status Akun</th>
+                      <th style="width: 140px; text-align: right;">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody data-slot="table-body">
+                    <tr>
+                      <td><strong>1001</strong></td>
+                      <td>Ahmad Dahlan</td>
+                      <td>X-MIPA-1</td>
+                      <td><span class="badge badge-hadir">Ya (Prioritas)</span></td>
+                      <td><span class="badge badge-hadir">Aktif</span></td>
+                      <td style="text-align: right;">
+                        <button class="btn btn-secondary btn-sm" onclick="openModal('modal-siswa')">Edit</button>
+                        <button class="btn btn-outline btn-sm"
+                          style="color: var(--color-alpa); border-color: var(--border-alpa);"
+                          onclick="showToast('Konfirmasi hapus siswa 1001', 'error')">Hapus</button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong>1002</strong></td>
+                      <td>Budi Setiawan</td>
+                      <td>X-MIPA-1</td>
+                      <td><span class="text-muted">-</span></td>
+                      <td><span class="badge badge-hadir">Aktif</span></td>
+                      <td style="text-align: right;">
+                        <button class="btn btn-secondary btn-sm" onclick="openModal('modal-siswa')">Edit</button>
+                        <button class="btn btn-outline btn-sm"
+                          style="color: var(--color-alpa); border-color: var(--border-alpa);"
+                          onclick="showToast('Konfirmasi hapus siswa 1002', 'error')">Hapus</button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong>1003</strong></td>
+                      <td>Citra Lestari</td>
+                      <td>X-MIPA-1</td>
+                      <td><span class="badge badge-hadir">Ya (Prioritas)</span></td>
+                      <td><span class="badge badge-hadir">Aktif</span></td>
+                      <td style="text-align: right;">
+                        <button class="btn btn-secondary btn-sm" onclick="openModal('modal-siswa')">Edit</button>
+                        <button class="btn btn-outline btn-sm"
+                          style="color: var(--color-alpa); border-color: var(--border-alpa);"
+                          onclick="showToast('Konfirmasi hapus siswa 1003', 'error')">Hapus</button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong>1004</strong></td>
+                      <td>Dimas Pratama</td>
+                      <td>X-MIPA-1</td>
+                      <td><span class="text-muted">-</span></td>
+                      <td><span class="badge badge-hadir">Aktif</span></td>
+                      <td style="text-align: right;">
+                        <button class="btn btn-secondary btn-sm" onclick="openModal('modal-siswa')">Edit</button>
+                        <button class="btn btn-outline btn-sm"
+                          style="color: var(--color-alpa); border-color: var(--border-alpa);"
+                          onclick="showToast('Konfirmasi hapus siswa 1004', 'error')">Hapus</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div
+                style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3);">
+                <span class="text-sm text-muted">Menampilkan 4 dari 32 siswa (X-MIPA-1)</span>
+                <div style="display: flex; gap: var(--space-2);">
+                  <button class="btn btn-secondary btn-sm" disabled>Sebelumnya</button>
+                  <button class="btn btn-secondary btn-sm" disabled>Selanjutnya</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 5: IMPORT DATA PASTE (data-page="import-data")
+             ================================================================== -->
+        <section class="page" id="page-import-data" data-page="import-data" hidden>
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">Import Data Master</h2>
+              <p class="page-subtitle">Salin data dari Excel atau Google Sheets lalu tempel di kotak bawah ini</p>
+            </div>
+            <div>
+              <button class="btn btn-secondary" onclick="navigateTo('master-siswa')">Kembali ke Data Siswa</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-body">
+              <div class="alert alert-info">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+                <div>
+                  <strong>Aturan Import:</strong> Kolom dipisahkan oleh Tab. Format untuk Siswa:
+                  <code>nis &bull; nama &bull; id_kelas &bull; kartu_kontrol (Ya/Tidak)</code>. Urutan import yang
+                  benar: Kelas &rarr; Guru/Siswa &rarr; Mapel &rarr; Jadwal.
+                </div>
+              </div>
+
+              <div class="form-row" style="margin-bottom: var(--space-4);">
+                <div class="form-group" style="flex: 1;">
+                  <label class="form-label" for="import-type">Jenis Data yang Diimpor</label>
+                  <select id="import-type" class="form-select">
+                    <option value="Siswa" selected>Siswa (nis, nama, id_kelas, kartu_kontrol)</option>
+                    <option value="Guru">Guru (nip, nama)</option>
+                    <option value="Kelas">Kelas (id_kelas, nama_kelas)</option>
+                    <option value="Mapel">Mapel (id_mapel, nama_mapel)</option>
+                    <option value="Jadwal">Jadwal (id_jadwal, id_semester, id_kelas, id_mapel, nip_guru, hari,
+                      jam_mulai, jam_selesai)</option>
+                  </select>
+                </div>
+                <div class="form-group" style="flex: 1; align-self: flex-end;">
+                  <button type="button" class="btn btn-outline" onclick="loadSamplePaste()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                      <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                    </svg>
+                    Isi Contoh Data Paste
+                  </button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="import-paste-area">Kotak Paste (Salin dari Spreadsheet)</label>
+                <textarea id="import-paste-area" class="form-control"
+                  style="height: 120px; font-family: monospace; font-size: var(--font-sm);"
+                  placeholder="Tempel baris data dari Excel di sini...">1005&#9;Eka Kurniawan&#9;X-MIPA-1&#9;Tidak
+1001&#9;Fajar Hidayat&#9;X-MIPA-99&#9;Ya</textarea>
+                <div class="form-help">Tekan tombol "Pratinjau Data" di bawah untuk memvalidasi duplikasi atau referensi
+                  tak valid.</div>
+              </div>
+
+              <div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-6);">
+                <button type="button" class="btn btn-primary"
+                  onclick="showToast('Pratinjau divalidasi: 1 valid, 1 error.', 'error')">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                  Pratinjau Data
+                </button>
+              </div>
+
+              <!-- Pratinjau Hasil Validasi Import -->
+              <h3 class="card-title" style="margin-bottom: var(--space-3); font-size: var(--font-base);">Tabel Pratinjau
+                & Hasil Validasi</h3>
+              <div class="table-container">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th style="width: 80px;">Baris</th>
+                      <th>NIS</th>
+                      <th>Nama Siswa</th>
+                      <th>Kelas</th>
+                      <th>Kartu Kontrol</th>
+                      <th style="width: 140px;">Status Validasi</th>
+                      <th>Keterangan Masalah</th>
+                    </tr>
+                  </thead>
+                  <tbody data-slot="preview-body">
+                    <tr class="table-row-valid">
+                      <td>1</td>
+                      <td>1005</td>
+                      <td>Eka Kurniawan</td>
+                      <td>X-MIPA-1</td>
+                      <td>Tidak</td>
+                      <td><span class="badge badge-hadir"><span class="badge-dot"></span> Valid</span></td>
+                      <td class="text-sm text-muted">Data siap disimpan</td>
+                    </tr>
+                    <tr class="table-row-error">
+                      <td>2</td>
+                      <td><strong>1001</strong></td>
+                      <td>Fajar Hidayat</td>
+                      <td><strong>X-MIPA-99</strong></td>
+                      <td>Ya</td>
+                      <td><span class="badge badge-alpa"><span class="badge-dot"></span> Error</span></td>
+                      <td style="color: var(--color-alpa); font-weight: 600; font-size: var(--font-xs);">
+                        NIS 1001 sudah ada di sistem; Kelas 'X-MIPA-99' tidak ditemukan
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card-footer">
+              <span class="text-sm text-muted" style="margin-right: auto;">1 dari 2 baris valid. Hanya baris valid yang
+                dapat diproses.</span>
+              <button class="btn btn-secondary" onclick="loadSamplePaste()">Reset Form</button>
+              <button class="btn btn-success" onclick="showToast('Sukses mengimpor 1 baris data valid!', 'success')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Simpan Data Valid
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 6: JADWAL GURU HARI INI (data-page="jadwal-guru")
+             ================================================================== -->
+        <section class="page" id="page-jadwal-guru" data-page="jadwal-guru" hidden>
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">Jadwal Mengajar Hari Ini</h2>
+              <p class="page-subtitle">Daftar jadwal mengajar dan status pengisian presensi kelas Anda</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: var(--space-2);">
+              <label class="form-label" for="jadwal-date-picker" style="margin-bottom: 0;">Tanggal:</label>
+              <input type="date" id="jadwal-date-picker" class="form-control" style="width: auto; min-height: 40px;"
+                value="2026-11-15" max="2026-11-15">
+            </div>
+          </div>
+
+          <div class="alert alert-info" style="margin-bottom: var(--space-4);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="16" x2="12" y2="12" />
+              <line x1="12" y1="8" x2="12.01" y2="8" />
+            </svg>
+            <div>
+              <strong>Ketentuan Presensi:</strong> Presensi hanya dapat diisi pada semester aktif. Tanggal masa depan
+              tidak diizinkan. Jika presensi tanggal lalu belum diisi, Anda tetap dapat mengisinya.
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3">
+            <!-- Card Jadwal 1 -->
+            <div class="card" style="border-top: 4px solid var(--color-hadir);">
+              <div class="card-body">
+                <div
+                  style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3);">
+                  <span class="badge badge-sudah"><span class="badge-dot"></span> Sudah Diisi</span>
+                  <span style="font-weight: 700; color: var(--text-muted); font-size: var(--font-sm);">07.30 -
+                    09.00</span>
+                </div>
+                <h3 style="font-size: var(--font-lg); font-weight: 700; margin-bottom: 4px;">Matematika</h3>
+                <p style="font-size: var(--font-sm); color: var(--text-muted); margin-bottom: var(--space-4);">Kelas
+                  X-MIPA-1 &bull; 32 Siswa</p>
+                <div
+                  style="padding: var(--space-2) var(--space-3); background: var(--surface-muted); border-radius: var(--radius-md); font-size: var(--font-xs); color: var(--text-muted); margin-bottom: var(--space-4);">
+                  Rekap: 30 Hadir &bull; 1 Izin &bull; 1 Sakit &bull; 0 Alpa
+                </div>
+                <button class="btn btn-secondary btn-block" onclick="navigateTo('form-presensi')">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                  Edit Presensi
+                </button>
+              </div>
+            </div>
+
+            <!-- Card Jadwal 2 -->
+            <div class="card" style="border-top: 4px solid var(--primary); box-shadow: var(--shadow-md);">
+              <div class="card-body">
+                <div
+                  style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3);">
+                  <span class="badge badge-belum"><span class="badge-dot"></span> Belum Diisi</span>
+                  <span style="font-weight: 700; color: var(--primary); font-size: var(--font-sm);">09.15 - 10.45</span>
+                </div>
+                <h3 style="font-size: var(--font-lg); font-weight: 700; margin-bottom: 4px;">Fisika</h3>
+                <p style="font-size: var(--font-sm); color: var(--text-muted); margin-bottom: var(--space-4);">Kelas
+                  XI-MIPA-2 &bull; 32 Siswa</p>
+                <div
+                  style="padding: var(--space-2) var(--space-3); background: var(--bg-wait-appr); border-radius: var(--radius-md); font-size: var(--font-xs); color: var(--color-wait-appr); margin-bottom: var(--space-4);">
+                  1 Siswa mengajukan Izin untuk jam ini
+                </div>
+                <button class="btn btn-primary btn-block" onclick="navigateTo('form-presensi')">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 11 12 14 22 4" />
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                  </svg>
+                  Isi Presensi Sekarang
+                </button>
+              </div>
+            </div>
+
+            <!-- Card Jadwal 3 -->
+            <div class="card" style="border-top: 4px solid var(--surface-border);">
+              <div class="card-body">
+                <div
+                  style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3);">
+                  <span class="badge badge-belum"><span class="badge-dot"></span> Belum Diisi</span>
+                  <span style="font-weight: 700; color: var(--text-muted); font-size: var(--font-sm);">11.00 -
+                    12.30</span>
+                </div>
+                <h3 style="font-size: var(--font-lg); font-weight: 700; margin-bottom: 4px;">Matematika</h3>
+                <p style="font-size: var(--font-sm); color: var(--text-muted); margin-bottom: var(--space-4);">Kelas
+                  X-MIPA-2 &bull; 30 Siswa</p>
+                <div
+                  style="padding: var(--space-2) var(--space-3); background: var(--surface-muted); border-radius: var(--radius-md); font-size: var(--font-xs); color: var(--text-muted); margin-bottom: var(--space-4);">
+                  Belum dimulai
+                </div>
+                <button class="btn btn-secondary btn-block" onclick="navigateTo('form-presensi')">
+                  Isi Nanti
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 7: FORM PRESENSI (data-page="form-presensi")
+             ================================================================== -->
+        <section class="page" id="page-form-presensi" data-page="form-presensi" hidden>
+          <div class="page-header">
+            <div>
+              <div style="display: flex; align-items: center; gap: var(--space-2); margin-bottom: 4px;">
+                <button class="btn btn-secondary btn-sm" onclick="navigateTo('jadwal-guru')">&larr; Kembali</button>
+                <span class="badge badge-izin">Fisika &bull; XI-MIPA-2</span>
+              </div>
+              <h2 class="page-title">Form Presensi Siswa</h2>
+              <p class="page-subtitle">Senin, 15 Nov 2026 &bull; Jam: 09.15 - 10.45 &bull; Total: 4 Siswa (Demo)</p>
+            </div>
+            <div style="display: flex; gap: var(--space-2);">
+              <button type="button" class="btn btn-outline" onclick="markAllHadir()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Tandai Semua Hadir
+              </button>
+            </div>
+          </div>
+
+          <!-- Counter Ringkasan Realtime -->
+          <div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-4); flex-wrap: wrap;">
+            <div
+              style="flex: 1; min-width: 70px; background: var(--bg-hadir); border: 1px solid var(--border-hadir); border-radius: var(--radius-md); padding: 8px 12px; text-align: center;">
+              <div style="font-size: var(--font-xs); color: var(--color-hadir); font-weight: 700;">Hadir</div>
+              <div style="font-size: var(--font-lg); font-weight: 800; color: var(--color-hadir);" id="counter-hadir">2
+              </div>
+            </div>
+            <div
+              style="flex: 1; min-width: 70px; background: var(--bg-izin); border: 1px solid var(--border-izin); border-radius: var(--radius-md); padding: 8px 12px; text-align: center;">
+              <div style="font-size: var(--font-xs); color: var(--color-izin); font-weight: 700;">Izin</div>
+              <div style="font-size: var(--font-lg); font-weight: 800; color: var(--color-izin);" id="counter-izin">1
+              </div>
+            </div>
+            <div
+              style="flex: 1; min-width: 70px; background: var(--bg-sakit); border: 1px solid var(--border-sakit); border-radius: var(--radius-md); padding: 8px 12px; text-align: center;">
+              <div style="font-size: var(--font-xs); color: var(--color-sakit); font-weight: 700;">Sakit</div>
+              <div style="font-size: var(--font-lg); font-weight: 800; color: var(--color-sakit);" id="counter-sakit">1
+              </div>
+            </div>
+            <div
+              style="flex: 1; min-width: 70px; background: var(--bg-alpa); border: 1px solid var(--border-alpa); border-radius: var(--radius-md); padding: 8px 12px; text-align: center;">
+              <div style="font-size: var(--font-xs); color: var(--color-alpa); font-weight: 700;">Alpa</div>
+              <div style="font-size: var(--font-lg); font-weight: 800; color: var(--color-alpa);" id="counter-alpa">0
+              </div>
+            </div>
+          </div>
+
+          <form id="form-presensi-siswa"
+            onsubmit="event.preventDefault(); showToast('Presensi 4 siswa berhasil disimpan!', 'success');">
+            <div class="attendance-grid" id="attendance-list-container">
+              <!-- Siswa 1 -->
+              <div class="attendance-card">
+                <div class="attendance-card-header">
+                  <div class="student-info">
+                    1. Ahmad Fauzi <span class="student-nis">&bull; NIS: 2001</span>
+                  </div>
+                </div>
+                <div class="status-group">
+                  <label>
+                    <input type="radio" name="status_2001" value="Hadir" class="status-radio" checked
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Hadir</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="status_2001" value="Izin" class="status-radio"
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Izin</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="status_2001" value="Sakit" class="status-radio"
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Sakit</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="status_2001" value="Alpa" class="status-radio"
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Alpa</span>
+                  </label>
+                </div>
+                <input type="text" class="form-control" placeholder="Keterangan opsional (mis. terlambat 5 menit)">
+              </div>
+
+              <!-- Siswa 2 (Izin Disetujui) -->
+              <div class="attendance-card" style="border-left: 4px solid var(--color-izin);">
+                <div class="attendance-card-header">
+                  <div class="student-info">
+                    2. Budi Santoso <span class="student-nis">&bull; NIS: 2002</span>
+                  </div>
+                  <span class="badge badge-izin">Pengajuan Izin Disetujui</span>
+                </div>
+                <div class="status-group">
+                  <label>
+                    <input type="radio" name="status_2002" value="Hadir" class="status-radio"
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Hadir</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="status_2002" value="Izin" class="status-radio" checked
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Izin</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="status_2002" value="Sakit" class="status-radio"
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Sakit</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="status_2002" value="Alpa" class="status-radio"
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Alpa</span>
+                  </label>
+                </div>
+                <input type="text" class="form-control" value="Surat orang tua: ada acara keluarga" readonly
+                  style="background: var(--surface-muted);">
+              </div>
+
+              <!-- Siswa 3 (Sakit Disetujui) -->
+              <div class="attendance-card" style="border-left: 4px solid var(--color-sakit);">
+                <div class="attendance-card-header">
+                  <div class="student-info">
+                    3. Citra Dewi <span class="student-nis">&bull; NIS: 2003</span>
+                  </div>
+                  <span class="badge badge-sakit">Surat Dokter Diterima</span>
+                </div>
+                <div class="status-group">
+                  <label>
+                    <input type="radio" name="status_2003" value="Hadir" class="status-radio"
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Hadir</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="status_2003" value="Izin" class="status-radio"
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Izin</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="status_2003" value="Sakit" class="status-radio" checked
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Sakit</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="status_2003" value="Alpa" class="status-radio"
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Alpa</span>
+                  </label>
+                </div>
+                <input type="text" class="form-control" value="Demam dan berobat ke klinik" readonly
+                  style="background: var(--surface-muted);">
+              </div>
+
+              <!-- Siswa 4 -->
+              <div class="attendance-card">
+                <div class="attendance-card-header">
+                  <div class="student-info">
+                    4. Doni Pratama <span class="student-nis">&bull; NIS: 2004</span>
+                  </div>
+                </div>
+                <div class="status-group">
+                  <label>
+                    <input type="radio" name="status_2004" value="Hadir" class="status-radio" checked
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Hadir</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="status_2004" value="Izin" class="status-radio"
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Izin</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="status_2004" value="Sakit" class="status-radio"
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Sakit</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="status_2004" value="Alpa" class="status-radio"
+                      onchange="updateAttendanceCounters()">
+                    <span class="status-btn-label">Alpa</span>
+                  </label>
+                </div>
+                <input type="text" class="form-control" placeholder="Keterangan opsional">
+              </div>
+            </div>
+
+            <!-- Sticky Action Footer -->
+            <div
+              style="position: sticky; bottom: 0; background: var(--surface); padding: var(--space-4); border-top: 1px solid var(--surface-border); border-radius: var(--radius-lg); margin-top: var(--space-4); display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow-lg);">
+              <span class="text-sm text-muted">Perubahan terakhir dicatat otomatis oleh server.</span>
+              <button type="submit" class="btn btn-success" style="min-width: 180px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                  <polyline points="17 21 17 13 7 13 7 21" />
+                  <polyline points="7 3 7 8 15 8" />
+                </svg>
+                Simpan Presensi
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 8: PENGAJUAN SISWA (data-page="pengajuan-siswa")
+             ================================================================== -->
+        <section class="page" id="page-pengajuan-siswa" data-page="pengajuan-siswa" hidden>
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">Pengajuan Sakit & Izin</h2>
+              <p class="page-subtitle">Ajukan permohonan ketidakhadiran mapel hari ini serta pantau status persetujuan
+              </p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2" style="align-items: start;">
+            <!-- Form Pengajuan Baru -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Form Pengajuan Baru</h3>
+              </div>
+              <div class="card-body">
+                <div class="alert alert-info">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
+                  <div>
+                    <strong>Batas Waktu:</strong> Pengajuan hanya dapat dikirim dalam <strong>15 menit pertama</strong>
+                    sejak jam mulai mapel.
+                  </div>
+                </div>
+
+                <form id="form-pengajuan-baru"
+                  onsubmit="event.preventDefault(); showToast('Pengajuan berhasil dikirim! Menunggu persetujuan guru.', 'success');">
+                  <div class="form-group">
+                    <label class="form-label" for="pengajuan-jadwal">Pilih Mapel & Jadwal Hari Ini</label>
+                    <select id="pengajuan-jadwal" class="form-select" required>
+                      <option value="1">Matematika - 07.30 s.d. 09.00 (Budi Pratama, S.Pd)</option>
+                      <option value="2">Fisika - 09.15 s.d. 10.45 (Rahmat Fahmi, M.Pd)</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Jenis Pengajuan</label>
+                    <div style="display: flex; gap: var(--space-4); margin-top: var(--space-2);">
+                      <label style="display: flex; align-items: center; gap: var(--space-2); cursor: pointer;">
+                        <input type="radio" name="jenis_pengajuan" value="Sakit" checked
+                          onchange="toggleBuktiRequirement('Sakit')">
+                        <strong>Sakit</strong> (Bukti bisa menyusul)
+                      </label>
+                      <label style="display: flex; align-items: center; gap: var(--space-2); cursor: pointer;">
+                        <input type="radio" name="jenis_pengajuan" value="Izin"
+                          onchange="toggleBuktiRequirement('Izin')">
+                        <strong>Izin</strong> (Wajib surat orang tua)
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="pengajuan-alasan">Alasan Pengajuan</label>
+                    <textarea id="pengajuan-alasan" class="form-control"
+                      placeholder="Tuliskan alasan singkat ketidakhadiran..." required></textarea>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="pengajuan-file">
+                      Unggah Bukti <span id="bukti-required-text" class="text-muted">(Opsional saat sakit, wajib untuk
+                        izin)</span>
+                    </label>
+                    <input type="file" id="pengajuan-file" class="form-control" accept="image/*,application/pdf">
+                    <div class="form-help">Format: Foto (JPG, PNG) atau PDF. Maksimal 2 MB.</div>
+                  </div>
+
+                  <button type="submit" class="btn btn-primary btn-block">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="22" y1="2" x2="11" y2="13" />
+                      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                    </svg>
+                    Kirim Pengajuan
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <!-- Daftar Riwayat Pengajuan Siswa -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Riwayat Pengajuan Anda</h3>
+              </div>
+              <div class="card-body">
+                <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+                  <!-- Item 1: Disetujui -->
+                  <div
+                    style="padding: var(--space-3); border: 1px solid var(--surface-border); border-radius: var(--radius-md);">
+                    <div
+                      style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
+                      <span class="badge badge-approved"><span class="badge-dot"></span> Disetujui</span>
+                      <span class="text-sm text-muted">15 Nov 2026</span>
+                    </div>
+                    <div style="font-weight: 700;">Izin &bull; Matematika</div>
+                    <p class="text-sm text-muted" style="margin-bottom: 6px;">Alasan: Acara keluarga mendesak</p>
+                    <span class="text-sm" style="color: var(--color-hadir);">&check; Surat izin orang tua
+                      diverifikasi</span>
+                  </div>
+
+                  <!-- Item 2: Menunggu Bukti -->
+                  <div
+                    style="padding: var(--space-3); border: 1px solid var(--surface-border); border-radius: var(--radius-md); background: #faf5ff;">
+                    <div
+                      style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
+                      <span class="badge badge-wait-doc"><span class="badge-dot"></span> Menunggu Bukti</span>
+                      <span class="text-sm text-muted">14 Nov 2026</span>
+                    </div>
+                    <div style="font-weight: 700;">Sakit &bull; Bahasa Inggris</div>
+                    <p class="text-sm text-muted" style="margin-bottom: 8px;">Alasan: Demam dan pusing</p>
+                    <button class="btn btn-primary btn-sm" onclick="openModal('modal-unggah-bukti')">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                      Unggah Surat Dokter
+                    </button>
+                  </div>
+
+                  <!-- Item 3: Menunggu Persetujuan -->
+                  <div
+                    style="padding: var(--space-3); border: 1px solid var(--surface-border); border-radius: var(--radius-md);">
+                    <div
+                      style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
+                      <span class="badge badge-wait-appr"><span class="badge-dot"></span> Menunggu Persetujuan</span>
+                      <span class="text-sm text-muted">12 Nov 2026</span>
+                    </div>
+                    <div style="font-weight: 700;">Izin &bull; Fisika</div>
+                    <p class="text-sm text-muted">Alasan: Mengikuti lomba sains tingkat kota</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 9: PERSETUJUAN GURU (data-page="persetujuan-guru")
+             ================================================================== -->
+        <section class="page" id="page-persetujuan-guru" data-page="persetujuan-guru" hidden>
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">Persetujuan Sakit & Izin Siswa</h2>
+              <p class="page-subtitle">Tinjau permohonan izin dari siswa pada mata pelajaran yang Anda ampu</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-body">
+              <div class="form-row" style="margin-bottom: var(--space-4);">
+                <div class="form-group" style="flex: 1;">
+                  <label class="form-label" for="filter-status-izin">Status Pengajuan</label>
+                  <select id="filter-status-izin" class="form-select">
+                    <option value="">Semua Status</option>
+                    <option value="Menunggu persetujuan" selected>Menunggu Persetujuan (2)</option>
+                    <option value="Menunggu bukti">Menunggu Bukti (1)</option>
+                    <option value="Disetujui">Disetujui</option>
+                    <option value="Ditolak">Ditolak</option>
+                  </select>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                  <label class="form-label" for="filter-kelas-izin">Kelas</label>
+                  <select id="filter-kelas-izin" class="form-select">
+                    <option value="">Semua Kelas</option>
+                    <option value="X-MIPA-1">X-MIPA-1</option>
+                    <option value="XI-MIPA-2">XI-MIPA-2</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="table-container">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Tanggal</th>
+                      <th>Siswa & Kelas</th>
+                      <th>Mapel & Jam</th>
+                      <th>Jenis</th>
+                      <th>Waktu Masuk</th>
+                      <th>Status</th>
+                      <th style="text-align: right;">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody data-slot="table-body">
+                    <tr>
+                      <td>15 Nov 2026</td>
+                      <td>
+                        <strong>Ahmad Fauzi</strong>
+                        <div class="text-sm text-muted">NIS: 2001 &bull; XI-MIPA-2</div>
+                      </td>
+                      <td>Fisika (09.15 - 10.45)</td>
+                      <td><span class="badge badge-izin">Izin</span></td>
+                      <td>09.22 WIB <span class="text-sm" style="color: var(--color-hadir);">(7 mnt)</span></td>
+                      <td><span class="badge badge-wait-appr"><span class="badge-dot"></span> Menunggu
+                          Persetujuan</span></td>
+                      <td style="text-align: right;">
+                        <button class="btn btn-primary btn-sm" onclick="openModal('modal-review-izin')">
+                          Periksa Bukti
+                        </button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>15 Nov 2026</td>
+                      <td>
+                        <strong>Rian Pratama</strong>
+                        <div class="text-sm text-muted">NIS: 2005 &bull; XI-MIPA-2</div>
+                      </td>
+                      <td>Fisika (09.15 - 10.45)</td>
+                      <td><span class="badge badge-sakit">Sakit</span></td>
+                      <td>09.18 WIB <span class="text-sm" style="color: var(--color-hadir);">(3 mnt)</span></td>
+                      <td><span class="badge badge-wait-doc"><span class="badge-dot"></span> Menunggu Bukti</span></td>
+                      <td style="text-align: right;">
+                        <button class="btn btn-secondary btn-sm" onclick="openModal('modal-review-izin')">
+                          Detail
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 10: REKAP & EKSPOR (data-page="rekap-presensi")
+             ================================================================== -->
+        <section class="page" id="page-rekap-presensi" data-page="rekap-presensi" hidden>
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">Rekapitulasi Kehadiran</h2>
+              <p class="page-subtitle">Laporan statistik kehadiran per semester dan ekspor berkas Excel</p>
+            </div>
+            <div>
+              <button class="btn btn-success"
+                onclick="showToast('Mengunduh berkas Rekap-Presensi-2026.xlsx...', 'success')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Ekspor Excel (.xlsx)
+              </button>
+            </div>
+          </div>
+
+          <!-- Filter Bar Guru & Admin -->
+          <div class="card" id="rekap-filter-card">
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group" style="flex: 1;">
+                  <label class="form-label" for="rekap-semester">Semester</label>
+                  <select id="rekap-semester" class="form-select">
+                    <option value="1" selected>2026/2027 Ganjil (Aktif)</option>
+                    <option value="2">2025/2026 Genap (Arsip)</option>
+                  </select>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                  <label class="form-label" for="rekap-kelas">Kelas</label>
+                  <select id="rekap-kelas" class="form-select">
+                    <option value="X-MIPA-1" selected>X-MIPA-1</option>
+                    <option value="X-MIPA-2">X-MIPA-2</option>
+                    <option value="XI-MIPA-2">XI-MIPA-2</option>
+                  </select>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                  <label class="form-label" for="rekap-mapel">Mata Pelajaran</label>
+                  <select id="rekap-mapel" class="form-select">
+                    <option value="all">Semua Mapel</option>
+                    <option value="matematika" selected>Matematika</option>
+                    <option value="fisika">Fisika</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabel Rekap Guru & Admin -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Rekap Kelas X-MIPA-1 &bull; Matematika</h3>
+              <span class="text-sm text-muted">Periode: Semester Ganjil</span>
+            </div>
+            <div class="card-body">
+              <div class="table-container">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th style="width: 50px;">No</th>
+                      <th style="width: 100px;">NIS</th>
+                      <th>Nama Siswa</th>
+                      <th style="text-align: center; width: 80px;">Hadir</th>
+                      <th style="text-align: center; width: 80px;">Izin</th>
+                      <th style="text-align: center; width: 80px;">Sakit</th>
+                      <th style="text-align: center; width: 80px;">Alpa</th>
+                      <th style="text-align: center; width: 120px;">Kehadiran %</th>
+                      <th style="width: 140px;">Kartu Kontrol</th>
+                    </tr>
+                  </thead>
+                  <tbody data-slot="table-body">
+                    <tr>
+                      <td>1</td>
+                      <td><strong>1001</strong></td>
+                      <td>Ahmad Dahlan</td>
+                      <td style="text-align: center; font-weight: 700; color: var(--color-hadir);">18</td>
+                      <td style="text-align: center;">2</td>
+                      <td style="text-align: center;">0</td>
+                      <td style="text-align: center; color: var(--text-muted);">0</td>
+                      <td style="text-align: center; font-weight: 700; color: var(--color-hadir);">90.0%</td>
+                      <td><span class="badge badge-hadir">Prioritas</span></td>
+                    </tr>
+                    <tr>
+                      <td>2</td>
+                      <td><strong>1002</strong></td>
+                      <td>Budi Setiawan</td>
+                      <td style="text-align: center; font-weight: 700; color: var(--color-hadir);">20</td>
+                      <td style="text-align: center;">0</td>
+                      <td style="text-align: center;">0</td>
+                      <td style="text-align: center; color: var(--text-muted);">0</td>
+                      <td style="text-align: center; font-weight: 700; color: var(--color-hadir);">100.0%</td>
+                      <td><span class="text-muted">-</span></td>
+                    </tr>
+                    <tr>
+                      <td>3</td>
+                      <td><strong>1003</strong></td>
+                      <td>Citra Lestari</td>
+                      <td style="text-align: center; font-weight: 700; color: var(--color-hadir);">17</td>
+                      <td style="text-align: center;">1</td>
+                      <td style="text-align: center;">2</td>
+                      <td style="text-align: center; color: var(--text-muted);">0</td>
+                      <td style="text-align: center; font-weight: 700; color: var(--color-hadir);">85.0%</td>
+                      <td><span class="badge badge-hadir">Prioritas</span></td>
+                    </tr>
+                    <tr>
+                      <td>4</td>
+                      <td><strong>1004</strong></td>
+                      <td>Dimas Pratama</td>
+                      <td style="text-align: center; font-weight: 700; color: var(--color-alpa);">14</td>
+                      <td style="text-align: center;">1</td>
+                      <td style="text-align: center;">1</td>
+                      <td style="text-align: center; font-weight: 700; color: var(--color-alpa);">4</td>
+                      <td style="text-align: center; font-weight: 700; color: var(--color-alpa);">70.0%</td>
+                      <td><span class="text-muted">-</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODALS
+       ==================================================================== -->
+
+  <!-- Modal 1: Tambah / Edit Siswa -->
+  <div class="modal-backdrop" id="modal-siswa" role="dialog" aria-modal="true" aria-labelledby="modal-siswa-title" hidden>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="card-title" id="modal-siswa-title">Form Data Siswa</h3>
+        <button type="button" class="btn-close" onclick="closeModal('modal-siswa')" aria-label="Tutup">&times;</button>
+      </div>
+      <form id="form-modal-siswa"
+        onsubmit="event.preventDefault(); closeModal('modal-siswa'); showToast('Data siswa berhasil disimpan!', 'success');">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="siswa-nis">Nomor Induk Siswa (NIS)</label>
+            <input type="text" id="siswa-nis" class="form-control" placeholder="Contoh: 1005" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="siswa-nama">Nama Lengkap Siswa</label>
+            <input type="text" id="siswa-nama" class="form-control" placeholder="Contoh: Eka Kurniawan" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="siswa-kelas">Kelas</label>
+            <select id="siswa-kelas" class="form-select" required>
+              <option value="X-MIPA-1">X-MIPA-1</option>
+              <option value="X-MIPA-2">X-MIPA-2</option>
+              <option value="XI-MIPA-1">XI-MIPA-1</option>
+              <option value="XI-MIPA-2">XI-MIPA-2</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label style="display: flex; align-items: center; gap: var(--space-2); cursor: pointer;">
+              <input type="checkbox" id="siswa-kartu-kontrol" value="Ya" style="width: 18px; height: 18px;">
+              <span class="form-label" style="margin-bottom: 0;">Siswa Pemegang Kartu Kontrol (Prioritas)</span>
+            </label>
+            <div class="form-help">Siswa kartu kontrol dapat langsung mengunggah bukti surat sakit tanpa status tunggu
+              bukti.</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-siswa')">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan Siswa</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 2: Review & Persetujuan Pengajuan Guru -->
+  <div class="modal-backdrop" id="modal-review-izin" role="dialog" aria-modal="true"
+    aria-labelledby="modal-review-title" hidden>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="card-title" id="modal-review-title">Pemeriksaan Bukti Pengajuan</h3>
+        <button type="button" class="btn-close" onclick="closeModal('modal-review-izin')"
+          aria-label="Tutup">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="margin-bottom: var(--space-4);">
+          <div
+            style="font-size: var(--font-xs); color: var(--text-muted); text-transform: uppercase; font-weight: 700;">
+            Data Pemohon</div>
+          <div style="font-size: var(--font-base); font-weight: 700;">Ahmad Fauzi &bull; NIS: 2001 (XI-MIPA-2)</div>
+          <div class="text-sm text-muted">Mata Pelajaran: Fisika &bull; 15 Nov 2026 (09.15 - 10.45)</div>
+          <div class="text-sm text-muted">Diajukan pada: 09.22 WIB <span class="badge badge-hadir">Dalam batas 15
+              menit</span></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Alasan Siswa</label>
+          <div
+            style="padding: var(--space-3); background: var(--surface-muted); border-radius: var(--radius-md); font-size: var(--font-sm);">
+            "Orang tua ada urusan keluarga mendesak ke luar kota, mohon izin tidak masuk pada mapel hari ini."
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Pratinjau Berkas Bukti (Surat Orang Tua / Dokter)</label>
+          <div class="doc-preview-box has-file" data-slot="doc-preview">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+              style="color: var(--primary);">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+              <polyline points="10 9 9 9 8 9" />
+            </svg>
+            <div style="font-weight: 600; font-size: var(--font-sm);">surat_izin_orangtua_ttd.pdf</div>
+            <div class="text-sm text-muted">Ukuran: 840 KB &bull; Diunggah oleh Ahmad Fauzi</div>
+            <button type="button" class="btn btn-outline btn-sm" style="margin-top: var(--space-2);"
+              onclick="showToast('Membuka pratinjau dokumen Google Drive...', 'success')">
+              Buka Berkas Penuh di Drive
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="review-catatan-guru">Catatan Guru (Opsional jika ditolak)</label>
+          <textarea id="review-catatan-guru" class="form-control"
+            placeholder="Tuliskan catatan persetujuan atau alasan penolakan..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger"
+          onclick="closeModal('modal-review-izin'); showToast('Pengajuan ditolak.', 'error');">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+          Tolak Pengajuan
+        </button>
+        <button type="button" class="btn btn-success"
+          onclick="closeModal('modal-review-izin'); showToast('Pengajuan disetujui! Status presensi siswa menjadi Izin.', 'success');">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          Setujui Pengajuan
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Unggah Bukti Susulan Siswa -->
+  <div class="modal-backdrop" id="modal-unggah-bukti" role="dialog" aria-modal="true"
+    aria-labelledby="modal-unggah-title" hidden>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="card-title" id="modal-unggah-title">Unggah Bukti Surat Dokter</h3>
+        <button type="button" class="btn-close" onclick="closeModal('modal-unggah-bukti')"
+          aria-label="Tutup">&times;</button>
+      </div>
+      <form
+        onsubmit="event.preventDefault(); closeModal('modal-unggah-bukti'); showToast('Bukti dokter berhasil diunggah! Status berubah menjadi Menunggu Persetujuan.', 'success');">
+        <div class="modal-body">
+          <p class="text-sm text-muted" style="margin-bottom: var(--space-3);">
+            Pengajuan Sakit: Bahasa Inggris (14 Nov 2026). Silakan unggah foto atau dokumen surat keterangan berobat
+            dari klinik atau dokter.
+          </p>
+          <div class="form-group">
+            <label class="form-label" for="file-bukti-susulan">Pilih Berkas Bukti (PDF / JPG / PNG)</label>
+            <input type="file" id="file-bukti-susulan" class="form-control" required accept="image/*,application/pdf">
+            <div class="form-help">Maksimal 2 MB. Berkas akan disimpan di Google Drive sekolah.</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-unggah-bukti')">Batal</button>
+          <button type="submit" class="btn btn-primary">Unggah Sekarang</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container" role="status" aria-live="polite"></div>
+
+  <script>
+/**
+ * Aplikasi Presensi Sekolah - Client Interaction Script (Vanilla JS)
+ * Static Dashboard Template (No server calls / build framework)
+ */
+
+// State saat ini
+const appState = {
+  currentPage: 'login',
+  currentRole: 'Guru',
+  user: {
+    name: 'Budi Pratama, S.Pd',
+    nip_nis: '198205122008011003',
+    role: 'Guru',
+    detail: 'Guru Matematika'
+  }
+};
+
+// Data pengguna simulasi per role
+const demoUsers = {
+  Admin: {
+    name: 'Drs. Hendro Wibowo',
+    nip_nis: '197503141999031002',
+    role: 'Admin',
+    detail: 'Administrator Presensi',
+    avatar: 'HW',
+    defaultPage: 'dashboard-admin'
+  },
+  Guru: {
+    name: 'Budi Pratama, S.Pd',
+    nip_nis: '198205122008011003',
+    role: 'Guru',
+    detail: 'Guru Matematika',
+    avatar: 'BP',
+    defaultPage: 'dashboard-guru'
+  },
+  Siswa: {
+    name: 'Ahmad Dahlan',
+    nip_nis: '1001',
+    role: 'Siswa',
+    detail: 'Kelas X-MIPA-1',
+    avatar: 'AD',
+    defaultPage: 'dashboard-siswa'
+  }
+};
+
+/**
+ * Inisialisasi saat DOM siap
+ */
+document.addEventListener('DOMContentLoaded', () => {
+  // Tutup modal jika tombol Escape ditekan
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeAllModals();
+      toggleSidebar(false);
+    }
+  });
+
+  // Hitung status awal form presensi jika aktif
+  updateAttendanceCounters();
+});
+
+/**
+ * Navigasi antar halaman (show/hide section via data-page)
+ * @param {string} pageId - ID halaman pada atribut data-page
+ */
+function navigateTo(pageId) {
+  if (!pageId) return;
+
+  const appFramework = document.getElementById('app-framework');
+  const loginSection = document.getElementById('page-login');
+  const quickJump = document.getElementById('quick-page-jump');
+
+  if (pageId === 'login') {
+    // Tampilkan halaman login, sembunyikan framework
+    if (appFramework) {
+      appFramework.style.display = 'none';
+      appFramework.setAttribute('hidden', '');
+    }
+    if (loginSection) {
+      loginSection.removeAttribute('hidden');
+      loginSection.style.display = 'block';
+      loginSection.classList.add('active');
+    }
+    appState.currentPage = 'login';
+    if (quickJump) quickJump.value = 'login';
+    return;
+  }
+
+  // Tampilkan framework aplikasi jika belum tampil
+  if (loginSection) {
+    loginSection.classList.remove('active');
+    loginSection.setAttribute('hidden', '');
+    loginSection.style.display = 'none';
+  }
+  if (appFramework) {
+    appFramework.removeAttribute('hidden');
+    appFramework.style.display = 'flex';
+  }
+
+  // Sembunyikan seluruh section halaman
+  const pages = document.querySelectorAll('main.main-content .page');
+  pages.forEach(p => {
+    p.classList.remove('active');
+    p.setAttribute('hidden', '');
+  });
+
+  // Aktifkan halaman target
+  const targetPage = document.querySelector(`main.main-content .page[data-page="${pageId}"]`);
+  if (targetPage) {
+    targetPage.removeAttribute('hidden');
+    targetPage.classList.add('active');
+    appState.currentPage = pageId;
+  }
+
+  // Perbarui status menu navigasi aktif di sidebar
+  const navItems = document.querySelectorAll('.sidebar-nav .nav-item');
+  navItems.forEach(item => {
+    if (item.getAttribute('data-target') === pageId) {
+      item.classList.add('active');
+    } else {
+      item.classList.remove('active');
+    }
+  });
+
+  // Sinkronkan dropdown quick-jump
+  if (quickJump) {
+    quickJump.value = pageId;
+  }
+
+  // Tutup sidebar di tampilan mobile setelah klik
+  toggleSidebar(false);
+
+  // Scroll ke paling atas halaman
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/**
+ * Simulasi pergantian role pengguna (Admin / Guru / Siswa)
+ * @param {string} role - 'Admin' | 'Guru' | 'Siswa'
+ */
+function setRolePreview(role) {
+  if (!demoUsers[role]) return;
+  appState.currentRole = role;
+  const profile = demoUsers[role];
+  appState.user = { ...profile };
+
+  // Perbarui badge role di topbar
+  const topbarBadge = document.getElementById('topbar-role-badge');
+  if (topbarBadge) {
+    topbarBadge.textContent = role.toUpperCase();
+  }
+
+  // Perbarui data pengguna di footer sidebar
+  const userNameEl = document.getElementById('sidebar-user-name');
+  const userRoleEl = document.getElementById('sidebar-user-role');
+  const userAvatarEl = document.getElementById('sidebar-avatar');
+
+  if (userNameEl) userNameEl.textContent = profile.name;
+  if (userRoleEl) userRoleEl.textContent = profile.detail;
+  if (userAvatarEl) userAvatarEl.textContent = profile.avatar;
+
+  // Tampilkan/sembunyikan grup menu di sidebar sesuai role
+  const roleSections = document.querySelectorAll('.role-menu-section');
+  roleSections.forEach(section => {
+    const secRole = section.getAttribute('data-role-section');
+    if (secRole === role) {
+      section.style.display = 'block';
+    } else {
+      section.style.display = 'none';
+    }
+  });
+}
+
+/**
+ * Penanganan submit form login
+ */
+function handleLoginSubmit() {
+  const usernameInput = document.getElementById('login-username');
+  const username = usernameInput ? usernameInput.value.trim().toLowerCase() : '';
+  
+  // Tentukan role pengguna berdasarkan username (untuk pratinjau lokal)
+  let targetRole = appState.currentRole || 'Guru';
+  if (username.includes('admin')) {
+    targetRole = 'Admin';
+  } else if (username.includes('siswa') || username === '1001' || (username.length <= 4 && !isNaN(username))) {
+    targetRole = 'Siswa';
+  } else if (username.includes('guru') || username.startsWith('19')) {
+    targetRole = 'Guru';
+  }
+  
+  setRolePreview(targetRole);
+  showToast(`Selamat datang, ${demoUsers[targetRole]?.name || 'Pengguna'}!`, 'success');
+  
+  // Arahkan ke dashboard sesuai role
+  navigateTo(demoUsers[targetRole]?.defaultPage || 'dashboard-guru');
+}
+
+/**
+ * Simulasi keluar aplikasi (Logout)
+ */
+function logoutApp() {
+  showToast('Anda telah keluar dari aplikasi.', 'info');
+  navigateTo('login');
+}
+
+/**
+ * Buka / tutup sidebar drawer mobile
+ * @param {boolean} isOpen 
+ */
+function toggleSidebar(isOpen) {
+  const sidebar = document.getElementById('app-sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  const closeBtn = document.getElementById('sidebar-close-btn');
+
+  if (sidebar) {
+    if (isOpen) {
+      sidebar.classList.add('open');
+      if (backdrop) backdrop.classList.add('open');
+      if (closeBtn) closeBtn.style.display = 'flex';
+    } else {
+      sidebar.classList.remove('open');
+      if (backdrop) backdrop.classList.remove('open');
+      if (closeBtn) closeBtn.style.display = 'none';
+    }
+  }
+}
+
+/**
+ * Buka modal berdasarkan ID
+ * @param {string} modalId 
+ */
+function openModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) {
+    modal.removeAttribute('hidden');
+    modal.classList.add('open');
+    // Beri fokus ke input pertama jika ada
+    const firstInput = modal.querySelector('input, select, textarea');
+    if (firstInput) firstInput.focus();
+  }
+}
+
+/**
+ * Tutup modal berdasarkan ID
+ * @param {string} modalId 
+ */
+function closeModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) {
+    modal.classList.remove('open');
+    modal.setAttribute('hidden', '');
+  }
+}
+
+/**
+ * Tutup seluruh modal yang sedang terbuka
+ */
+function closeAllModals() {
+  const modals = document.querySelectorAll('.modal-backdrop');
+  modals.forEach(m => {
+    m.classList.remove('open');
+    m.setAttribute('hidden', '');
+  });
+}
+
+/**
+ * Tampilkan notifikasi toast ringan
+ * @param {string} message 
+ * @param {string} type - 'success' | 'error' | 'info'
+ */
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  
+  let iconSvg = '';
+  if (type === 'success') {
+    iconSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--color-hadir); flex-shrink: 0;"><polyline points="20 6 9 17 4 12"/></svg>';
+  } else if (type === 'error') {
+    iconSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--color-alpa); flex-shrink: 0;"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+  } else {
+    iconSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--primary); flex-shrink: 0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+  }
+
+  toast.innerHTML = `
+    ${iconSvg}
+    <div style="flex: 1; min-width: 0;">${message}</div>
+    <button type="button" class="btn-close" style="margin-left: var(--space-2);" onclick="this.parentElement.remove()" aria-label="Tutup">&times;</button>
+  `;
+
+  container.appendChild(toast);
+
+  // Otomatis hapus setelah 4 detik
+  setTimeout(() => {
+    if (toast.parentElement) {
+      toast.style.opacity = '0';
+      toast.style.transition = 'opacity 0.3s ease';
+      setTimeout(() => toast.remove(), 300);
+    }
+  }, 4000);
+}
+
+/**
+ * Update realtime counter pada form presensi
+ */
+function updateAttendanceCounters() {
+  const hadirCount = document.querySelectorAll('input.status-radio[value="Hadir"]:checked').length;
+  const izinCount = document.querySelectorAll('input.status-radio[value="Izin"]:checked').length;
+  const sakitCount = document.querySelectorAll('input.status-radio[value="Sakit"]:checked').length;
+  const alpaCount = document.querySelectorAll('input.status-radio[value="Alpa"]:checked').length;
+
+  const elHadir = document.getElementById('counter-hadir');
+  const elIzin = document.getElementById('counter-izin');
+  const elSakit = document.getElementById('counter-sakit');
+  const elAlpa = document.getElementById('counter-alpa');
+
+  if (elHadir) elHadir.textContent = hadirCount;
+  if (elIzin) elIzin.textContent = izinCount;
+  if (elSakit) elSakit.textContent = sakitCount;
+  if (elAlpa) elAlpa.textContent = alpaCount;
+}
+
+/**
+ * Tandai seluruh siswa menjadi 'Hadir' di Form Presensi
+ */
+function markAllHadir() {
+  const hadirRadios = document.querySelectorAll('input.status-radio[value="Hadir"]');
+  hadirRadios.forEach(radio => {
+    radio.checked = true;
+  });
+  updateAttendanceCounters();
+  showToast('Semua siswa ditandai Hadir.', 'info');
+}
+
+/**
+ * Toggle kewajiban unggah file bukti pada pengajuan siswa
+ * @param {string} jenis - 'Sakit' | 'Izin'
+ */
+function toggleBuktiRequirement(jenis) {
+  const helper = document.getElementById('bukti-required-text');
+  const fileInput = document.getElementById('pengajuan-file');
+  if (!helper || !fileInput) return;
+
+  if (jenis === 'Izin') {
+    helper.innerHTML = '<span style="color: var(--color-alpa); font-weight: 700;">* Wajib surat orang tua bertanda tangan</span>';
+    fileInput.required = true;
+  } else {
+    helper.textContent = '(Opsional saat pengajuan awal, bukti dokter dapat menyusul)';
+    fileInput.required = false;
+  }
+}
+
+/**
+ * Isi contoh data paste pada halaman import
+ */
+function loadSamplePaste() {
+  const area = document.getElementById('import-paste-area');
+  if (area) {
+    area.value = "1005\tEka Kurniawan\tX-MIPA-1\tTidak\n1001\tFajar Hidayat\tX-MIPA-99\tYa";
+    showToast('Contoh data paste dimuat ke kotak teks.', 'info');
+  }
+}
+</script>
+
+
+
+  <!-- ==========================================================================
+       PERINGATAN: PANEL DEMO KHUSUS PRATINJAU LOKAL (preview.html)
+       --------------------------------------------------------------------------
+       Panel ini HANYA untuk kebutuhan testing tampilan lokal di browser.
+       Panel ini TIDAK ADA di Index.html dan TIDAK BOLEH dibawa ke Google Apps Script!
+       Di Apps Script, role pengguna ditentukan oleh server dari sheet 'Users'.
+       ========================================================================== -->
+  <div id="demo-role-floating-wrapper" style="position: fixed; bottom: 20px; left: 20px; z-index: 99999; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+    <!-- Panel Pop-up Pengganti Role (Awalnya tersembunyi) -->
+    <div id="demo-role-popup" style="display: none; width: 310px; background: #ffffff; border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2), 0 8px 10px -6px rgba(0,0,0,0.1); border: 1px solid #cbd5e1; margin-bottom: 10px; overflow: hidden;">
+      <div style="background: #0f172a; color: #ffffff; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="display: inline-block; width: 8px; height: 8px; background: #22c55e; border-radius: 50%;"></span>
+          <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.3px;">DEMO ROLE SWITCHER</span>
+        </div>
+        <button type="button" onclick="toggleDemoRolePanel(false)" style="background: transparent; border: none; color: #94a3b8; cursor: pointer; font-size: 18px; padding: 0 4px; line-height: 1;">&times;</button>
+      </div>
+      
+      <div style="padding: 12px 14px;">
+        <div style="font-size: 11px; line-height: 1.4; color: #92400e; background: #fef3c7; border: 1px solid #fde68a; border-radius: 6px; padding: 6px 8px; margin-bottom: 12px;">
+          <strong>⚠️ Pratinjau Lokal Saja:</strong> Panel ini hanya ada di <code>preview.html</code> untuk menguji variasi menu tiap role. Jangan dibawa ke Apps Script.
+        </div>
+
+        <div style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+          Pilih Tampilan Role:
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <button type="button" class="demo-role-option-btn" data-role="Guru" onclick="switchDemoRole('Guru')" style="display: flex; align-items: center; justify-content: space-between; width: 100%; text-align: left; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; cursor: pointer; transition: all 0.15s ease;">
+            <div>
+              <div style="font-size: 13px; font-weight: 600; color: #1e293b;">👨‍🏫 Guru</div>
+              <div style="font-size: 11px; color: #64748b;">Pengajar Mapel & Presensi</div>
+            </div>
+            <span id="demo-check-Guru" class="demo-role-check" style="color: #2563eb; font-weight: bold; font-size: 14px;">✓</span>
+          </button>
+
+          <button type="button" class="demo-role-option-btn" data-role="Admin" onclick="switchDemoRole('Admin')" style="display: flex; align-items: center; justify-content: space-between; width: 100%; text-align: left; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff; cursor: pointer; transition: all 0.15s ease;">
+            <div>
+              <div style="font-size: 13px; font-weight: 600; color: #1e293b;">🛡️ Admin</div>
+              <div style="font-size: 11px; color: #64748b;">Master Data & Pengelola</div>
+            </div>
+            <span id="demo-check-Admin" class="demo-role-check" style="display: none; color: #2563eb; font-weight: bold; font-size: 14px;">✓</span>
+          </button>
+
+          <button type="button" class="demo-role-option-btn" data-role="Siswa" onclick="switchDemoRole('Siswa')" style="display: flex; align-items: center; justify-content: space-between; width: 100%; text-align: left; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff; cursor: pointer; transition: all 0.15s ease;">
+            <div>
+              <div style="font-size: 13px; font-weight: 600; color: #1e293b;">🎓 Siswa</div>
+              <div style="font-size: 11px; color: #64748b;">Peserta Didik & Pengajuan Izin</div>
+            </div>
+            <span id="demo-check-Siswa" class="demo-role-check" style="display: none; color: #2563eb; font-weight: bold; font-size: 14px;">✓</span>
+          </button>
+        </div>
+
+        <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+          <button type="button" onclick="navigateTo('login'); toggleDemoRolePanel(false);" style="background: transparent; border: none; color: #64748b; font-size: 12px; cursor: pointer; padding: 4px 0; text-decoration: underline;">
+            Ke Halaman Login
+          </button>
+          <span style="font-size: 11px; color: #94a3b8;" id="demo-active-badge">Role: GURU</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tombol Melayang Utama -->
+    <button id="btn-toggle-demo-panel" type="button" onclick="toggleDemoRolePanel()" style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; font-size: 12px; font-weight: 600; color: #0f172a; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 9999px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer; transition: all 0.2s ease;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="m16 11 2 2 4-4" />
+      </svg>
+      <span>DEMO: ganti tampilan role</span>
+      <span id="btn-demo-role-badge" style="background: #d97706; color: #ffffff; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 9999px; text-transform: uppercase;">Guru</span>
+    </button>
+  </div>
+
+  <script>
+    // Logika panel demo (khusus preview.html lokal)
+    function toggleDemoRolePanel(forceState) {
+      const panel = document.getElementById('demo-role-popup');
+      if (!panel) return;
+      const isVisible = panel.style.display !== 'none';
+      panel.style.display = (forceState !== undefined ? forceState : !isVisible) ? 'block' : 'none';
+    }
+
+    function switchDemoRole(role) {
+      if (typeof setRolePreview === 'function') {
+        setRolePreview(role);
+      }
+      if (typeof demoUsers !== 'undefined' && demoUsers[role]) {
+        if (typeof navigateTo === 'function') {
+          navigateTo(demoUsers[role].defaultPage);
+        }
+        if (typeof showToast === 'function') {
+          showToast('Tampilan beralih ke role: ' + role, 'info');
+        }
+      }
+      updateDemoPanelUI(role);
+    }
+
+    function updateDemoPanelUI(activeRole) {
+      const roles = ['Guru', 'Admin', 'Siswa'];
+      roles.forEach(r => {
+        const check = document.getElementById('demo-check-' + r);
+        if (check) check.style.display = (r === activeRole) ? 'inline' : 'none';
+        const btn = document.querySelector('.demo-role-option-btn[data-role="' + r + '"]');
+        if (btn) {
+          if (r === activeRole) {
+            btn.style.background = '#eff6ff';
+            btn.style.borderColor = '#3b82f6';
+          } else {
+            btn.style.background = '#ffffff';
+            btn.style.borderColor = '#e2e8f0';
+          }
+        }
+      });
+      const badge = document.getElementById('btn-demo-role-badge');
+      if (badge) badge.textContent = activeRole;
+      const activeBadge = document.getElementById('demo-active-badge');
+      if (activeBadge) activeBadge.textContent = 'Role: ' + activeRole.toUpperCase();
+    }
+
+    // Inisialisasi status demo panel saat halaman siap
+    window.addEventListener('DOMContentLoaded', () => {
+      const currentRole = (typeof appState !== 'undefined' && appState.currentRole) ? appState.currentRole : 'Guru';
+      updateDemoPanelUI(currentRole);
+    });
+  </script>
+
+</body>
+
+</html>

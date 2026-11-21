@@ -1,0 +1,771 @@
+<!-- ==================================================================
+     HALAMAN PENGAJUAN SISWA (T07) - data-page="pengajuan-siswa"
+     ================================================================== -->
+<section class="page" id="page-pengajuan-siswa" data-page="pengajuan-siswa" hidden>
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Pengajuan Sakit & Izin</h2>
+      <p class="page-subtitle">Ajukan permohonan ketidakhadiran mapel hari ini serta pantau riwayat dan status pengajuan</p>
+    </div>
+  </div>
+
+  <!-- Tab Navigasi Sub-Halaman Siswa -->
+  <div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-4); border-bottom: 1px solid var(--surface-border); padding-bottom: var(--space-2);">
+    <button type="button" class="btn btn-sm btn-primary" id="tab-btn-ajukan" onclick="switchSiswaTab('ajukan')">
+      Ajukan Izin/Sakit
+    </button>
+    <button type="button" class="btn btn-sm btn-outline" id="tab-btn-riwayat" onclick="switchSiswaTab('riwayat')">
+      Pengajuan Saya
+    </button>
+  </div>
+
+  <!-- TAB 1: FORM PENGAJUAN BARU & JADWAL HARI INI -->
+  <div id="siswa-view-ajukan">
+    <div class="alert alert-info" style="margin-bottom: var(--space-4);">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0;">
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="12 6 12 12 16 14" />
+      </svg>
+      <div>
+        <strong>Batas Waktu:</strong> Pengajuan hanya dapat dikirim dalam <strong>15 menit pertama</strong> sejak jam mulai mapel (waktu server). Di luar rentang waktu tersebut, pengajuan ditolak secara otomatis.
+      </div>
+    </div>
+
+    <!-- Jadwal Pelajaran Hari Ini -->
+    <div class="card" style="margin-bottom: var(--space-4);">
+      <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 class="card-title">Jadwal Kelas Hari Ini</h3>
+        <span class="text-sm text-muted" id="siswa-hari-tanggal-badge">Memuat tanggal...</span>
+      </div>
+      <div class="card-body">
+        <div id="siswa-jadwal-loading" style="text-align: center; padding: var(--space-4);">
+          <div class="loading-spinner"></div>
+          <p class="text-muted text-sm" style="margin-top: var(--space-2);">Memuat jadwal pelajaran kelas Anda...</p>
+        </div>
+        <div id="siswa-jadwal-empty" class="empty-state" style="display: none; padding: var(--space-4);">
+          <p class="text-muted">Tidak ada jadwal pelajaran untuk kelas Anda hari ini.</p>
+        </div>
+        <div id="siswa-jadwal-container" style="display: flex; flex-direction: column; gap: var(--space-3);"></div>
+      </div>
+    </div>
+
+    <!-- Form Pengajuan -->
+    <div class="card" id="card-form-pengajuan">
+      <div class="card-header">
+        <h3 class="card-title">Formulir Pengajuan Ketidakhadiran</h3>
+      </div>
+      <div class="card-body">
+        <form id="form-pengajuan-siswa" onsubmit="handleKirimPengajuan(event)">
+          <input type="hidden" id="pengajuan-id-jadwal" value="">
+
+          <div class="form-group">
+            <label class="form-label">Mapel & Jadwal Dipilih</label>
+            <div id="pengajuan-jadwal-selected-info" style="padding: var(--space-3); border: 1px dashed var(--surface-border); border-radius: var(--radius-md); background: var(--surface-alt);">
+              <span class="text-muted text-sm">Silakan klik tombol <strong>"Pilih & Ajukan"</strong> pada salah satu kartu jadwal di atas yang sedang dalam rentang 15 menit pertama.</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Jenis Pengajuan <span class="text-danger">*</span></label>
+            <div style="display: flex; gap: var(--space-4); margin-top: var(--space-2);">
+              <label style="display: flex; align-items: center; gap: var(--space-2); cursor: pointer;">
+                <input type="radio" name="siswa_jenis_pengajuan" value="Sakit" checked onchange="handleJenisPengajuanChange('Sakit')">
+                <strong>Sakit</strong>
+              </label>
+              <label style="display: flex; align-items: center; gap: var(--space-2); cursor: pointer;">
+                <input type="radio" name="siswa_jenis_pengajuan" value="Izin" onchange="handleJenisPengajuanChange('Izin')">
+                <strong>Izin</strong>
+              </label>
+            </div>
+            <div class="form-help" id="pengajuan-jenis-help">
+              Siswa reguler mengirim pengajuan Sakit terlebih dahulu; bukti surat dokter diunggah kemudian saat tersedia.
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="pengajuan-alasan">Alasan Pengajuan <span class="text-danger">*</span></label>
+            <textarea id="pengajuan-alasan" class="form-control" rows="3" maxlength="300" placeholder="Tuliskan alasan ketidakhadiran secara singkat dan jelas (maks 300 karakter)..." required></textarea>
+            <div class="form-help" style="display: flex; justify-content: space-between;">
+              <span>Maksimal 300 karakter.</span>
+              <span id="pengajuan-alasan-counter" class="text-muted">0/300</span>
+            </div>
+          </div>
+
+          <div class="form-group" id="pengajuan-file-container">
+            <label class="form-label" for="pengajuan-file">
+              Unggah Berkas Bukti <span id="pengajuan-file-required-label" class="text-muted">(Opsional saat sakit)</span>
+            </label>
+            <input type="file" id="pengajuan-file" class="form-control" accept="image/jpeg,image/png,application/pdf">
+            <div class="form-help" id="pengajuan-file-help">
+              Format: JPG, PNG, atau PDF. Maksimal 2 MB (foto resolusi tinggi otomatis dioptimalkan).
+            </div>
+          </div>
+
+          <button type="submit" id="btn-submit-pengajuan" class="btn btn-primary btn-block" disabled>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polygon points="22 2 15 22 11 13 2 9 22 2" />
+            </svg>
+            <span id="btn-submit-text">Kirim Pengajuan</span>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: RIWAYAT PENGAJUAN SAYA -->
+  <div id="siswa-view-riwayat" style="display: none;">
+    <div class="card">
+      <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 class="card-title">Riwayat 30 Pengajuan Terakhir</h3>
+        <button type="button" class="btn btn-outline btn-sm" onclick="muatRiwayatPengajuanSaya()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10" />
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+          </svg>
+          Muat Ulang
+        </button>
+      </div>
+      <div class="card-body">
+        <div id="siswa-riwayat-loading" style="text-align: center; padding: var(--space-4);">
+          <div class="loading-spinner"></div>
+          <p class="text-muted text-sm" style="margin-top: var(--space-2);">Memuat riwayat pengajuan...</p>
+        </div>
+        <div id="siswa-riwayat-empty" class="empty-state" style="display: none; padding: var(--space-4);">
+          <p class="text-muted">Belum ada riwayat pengajuan izin atau sakit.</p>
+        </div>
+        <div id="siswa-riwayat-list" style="display: flex; flex-direction: column; gap: var(--space-3);"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================================================================
+     MODAL UNGGAH BUKTI SUSULAN (T07)
+     ================================================================== -->
+<div class="modal-backdrop" id="modal-unggah-bukti" role="dialog" aria-modal="true" aria-labelledby="modal-unggah-title" hidden>
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3 class="card-title" id="modal-unggah-title">Unggah Bukti Surat Dokter</h3>
+      <button type="button" class="btn-close" onclick="tutupModalUnggahBukti()" aria-label="Tutup">&times;</button>
+    </div>
+    <form id="form-modal-unggah-bukti" onsubmit="handleUnggahBuktiSusulan(event)">
+      <div class="modal-body">
+        <input type="hidden" id="modal-bukti-id-izin" value="">
+        <p class="text-sm text-muted" id="modal-bukti-desc" style="margin-bottom: var(--space-3);">
+          Silakan unggah foto atau dokumen surat keterangan sakit dari dokter/klinik.
+        </p>
+        <div class="form-group">
+          <label class="form-label" for="modal-bukti-file">Pilih Berkas Bukti (PDF / JPG / PNG) <span class="text-danger">*</span></label>
+          <input type="file" id="modal-bukti-file" class="form-control" required accept="image/jpeg,image/png,application/pdf">
+          <div class="form-help">Maksimal 2 MB. Berkas disimpan aman di Google Drive sekolah.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="tutupModalUnggahBukti()">Batal</button>
+        <button type="submit" class="btn btn-primary" id="btn-modal-unggah-submit">Unggah Sekarang</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+/**
+ * Frontend Logic Pengajuan Siswa (T07)
+ */
+let currentSiswaData = null;
+
+/**
+ * Inisialisasi halaman pengajuan siswa
+ */
+function initPengajuanSiswaPage() {
+  const alasanInput = document.getElementById('pengajuan-alasan');
+  const counterEl = document.getElementById('pengajuan-alasan-counter');
+  if (alasanInput && counterEl) {
+    alasanInput.oninput = function () {
+      counterEl.textContent = (alasanInput.value || '').length + '/300';
+    };
+  }
+
+  // Reset form
+  resetFormPengajuan();
+  switchSiswaTab('ajukan');
+  muatJadwalSiswaHariIni();
+}
+
+/**
+ * Ganti tab sub-halaman Siswa
+ * @param {'ajukan'|'riwayat'} tab
+ */
+function switchSiswaTab(tab) {
+  const viewAjukan = document.getElementById('siswa-view-ajukan');
+  const viewRiwayat = document.getElementById('siswa-view-riwayat');
+  const btnAjukan = document.getElementById('tab-btn-ajukan');
+  const btnRiwayat = document.getElementById('tab-btn-riwayat');
+
+  if (tab === 'riwayat') {
+    if (viewAjukan) viewAjukan.style.display = 'none';
+    if (viewRiwayat) viewRiwayat.style.display = 'block';
+    if (btnAjukan) { btnAjukan.className = 'btn btn-sm btn-outline'; }
+    if (btnRiwayat) { btnRiwayat.className = 'btn btn-sm btn-primary'; }
+
+    // Update active state sidebar
+    document.querySelectorAll('.sidebar-nav .nav-item').forEach(function (item) {
+      if (item.getAttribute('data-target') === 'pengajuan-saya') item.classList.add('active');
+      else if (item.getAttribute('data-target') === 'pengajuan-siswa') item.classList.remove('active');
+    });
+
+    muatRiwayatPengajuanSaya();
+  } else {
+    if (viewAjukan) viewAjukan.style.display = 'block';
+    if (viewRiwayat) viewRiwayat.style.display = 'none';
+    if (btnAjukan) { btnAjukan.className = 'btn btn-sm btn-primary'; }
+    if (btnRiwayat) { btnRiwayat.className = 'btn btn-sm btn-outline'; }
+
+    document.querySelectorAll('.sidebar-nav .nav-item').forEach(function (item) {
+      if (item.getAttribute('data-target') === 'pengajuan-siswa') item.classList.add('active');
+      else if (item.getAttribute('data-target') === 'pengajuan-saya') item.classList.remove('active');
+    });
+  }
+}
+
+/**
+ * Helper downscaling foto klien > 2 MB menggunakan Canvas (maks side 1600px, JPEG 0.8)
+ * PDF tidak di-downscale dan ditolak jika > 2 MB.
+ * @param {File} file
+ * @param {Function} callback
+ * @param {Function} errorCallback
+ */
+function prepareFileInput(file, callback, errorCallback) {
+  if (!file) return callback(null);
+  const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+  if (file.size > 2 * 1024 * 1024 && isPdf) {
+    return errorCallback('Ukuran berkas PDF melebihi batas maksimal 2 MB.');
+  }
+  if (file.type && file.type.indexOf('image/') === 0 && file.size > 2 * 1024 * 1024) {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      img.onload = function () {
+        const maxSide = 1600;
+        let w = img.width, h = img.height;
+        if (w > maxSide || h > maxSide) {
+          if (w > h) { h = Math.round((h * maxSide) / w); w = maxSide; }
+          else { w = Math.round((w * maxSide) / h); h = maxSide; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        callback({ nama: file.name, mime: 'image/jpeg', base64: canvas.toDataURL('image/jpeg', 0.8) });
+      };
+      img.onerror = function () { errorCallback('Gagal memproses file foto.'); };
+      img.src = e.target.result;
+    };
+    reader.onerror = function () { errorCallback('Gagal membaca file foto.'); };
+    reader.readAsDataURL(file);
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    callback({ nama: file.name, mime: file.type || 'application/octet-stream', base64: e.target.result });
+  };
+  reader.onerror = function () { errorCallback('Gagal membaca berkas.'); };
+  reader.readAsDataURL(file);
+}
+
+/**
+ * Memuat jadwal kelas siswa hari ini dari server
+ */
+function muatJadwalSiswaHariIni() {
+  const token = getStoredToken();
+  if (!token) return;
+
+  const loadingEl = document.getElementById('siswa-jadwal-loading');
+  const emptyEl = document.getElementById('siswa-jadwal-empty');
+  const container = document.getElementById('siswa-jadwal-container');
+  const badgeEl = document.getElementById('siswa-hari-tanggal-badge');
+
+  if (loadingEl) loadingEl.style.display = 'block';
+  if (emptyEl) emptyEl.style.display = 'none';
+  if (container) container.innerHTML = '';
+
+  if (typeof google === 'undefined' || !google.script || !google.script.run) {
+    if (loadingEl) loadingEl.style.display = 'none';
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler(function (res) {
+      if (loadingEl) loadingEl.style.display = 'none';
+      currentSiswaData = res;
+
+      if (badgeEl && res) {
+        badgeEl.textContent = (res.hari || '') + ', ' + (res.tanggal || '');
+      }
+
+      const schedules = (res && res.schedules) || [];
+      if (schedules.length === 0) {
+        if (emptyEl) emptyEl.style.display = 'block';
+        return;
+      }
+
+      renderJadwalCardsSiswa(schedules);
+      handleJenisPengajuanChange(getRadioValue('siswa_jenis_pengajuan') || 'Sakit');
+    })
+    .withFailureHandler(function (err) {
+      if (loadingEl) loadingEl.style.display = 'none';
+      showToast(err.message || 'Gagal memuat jadwal siswa.', 'error');
+    })
+    .getJadwalSiswaHariIni(token);
+}
+
+/**
+ * Render kartu jadwal hari ini menggunakan createElement & textContent (bebas XSS)
+ * @param {Array<Object>} schedules
+ */
+function renderJadwalCardsSiswa(schedules) {
+  const container = document.getElementById('siswa-jadwal-container');
+  if (!container) return;
+  container.innerHTML = '';
+
+  for (let i = 0; i < schedules.length; i++) {
+    const s = schedules[i];
+
+    const card = document.createElement('div');
+    card.style.cssText = 'padding: var(--space-3); border: 1px solid var(--surface-border); border-radius: var(--radius-md); background: var(--surface); display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); flex-wrap: wrap;';
+
+    const infoBox = document.createElement('div');
+    infoBox.style.cssText = 'flex: 1; min-width: 200px;';
+
+    const titleRow = document.createElement('div');
+    titleRow.style.cssText = 'display: flex; align-items: center; gap: var(--space-2); margin-bottom: 4px;';
+
+    const mapelEl = document.createElement('strong');
+    mapelEl.style.fontSize = 'var(--font-base)';
+    mapelEl.textContent = s.nama_mapel;
+    titleRow.appendChild(mapelEl);
+
+    const jamEl = document.createElement('span');
+    jamEl.className = 'text-sm text-muted';
+    jamEl.textContent = '(' + s.jam_mulai + ' - ' + s.jam_selesai + ')';
+    titleRow.appendChild(jamEl);
+    infoBox.appendChild(titleRow);
+
+    const guruEl = document.createElement('div');
+    guruEl.className = 'text-sm text-muted';
+    guruEl.style.marginBottom = '6px';
+    guruEl.textContent = 'Guru: ' + s.nama_guru;
+    infoBox.appendChild(guruEl);
+
+    const badgeRow = document.createElement('div');
+    badgeRow.style.cssText = 'display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap;';
+
+    const windowBadge = document.createElement('span');
+    if (s.is_window_open) {
+      windowBadge.className = 'badge badge-wait-appr';
+      windowBadge.textContent = 'Window Buka (' + s.window_info + ')';
+    } else {
+      windowBadge.className = 'badge badge-belum';
+      windowBadge.textContent = 'Window Tutup (' + s.window_info + ')';
+    }
+    badgeRow.appendChild(windowBadge);
+
+    if (s.active_request) {
+      const reqBadge = document.createElement('span');
+      reqBadge.className = 'badge badge-' + getStatusBadgeClass(s.active_request.status);
+      reqBadge.textContent = s.active_request.jenis + ': ' + s.active_request.status;
+      badgeRow.appendChild(reqBadge);
+    }
+    infoBox.appendChild(badgeRow);
+    card.appendChild(infoBox);
+
+    const actionBox = document.createElement('div');
+    actionBox.style.cssText = 'flex-shrink: 0;';
+
+    if (s.can_apply) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-primary btn-sm';
+      btn.textContent = 'Pilih & Ajukan';
+      btn.onclick = (function (jadwalObj) {
+        return function () { pilihJadwalPengajuan(jadwalObj); };
+      })(s);
+      actionBox.appendChild(btn);
+    } else if (s.active_request) {
+      const span = document.createElement('span');
+      span.className = 'text-sm text-muted';
+      span.textContent = 'Sudah Dikirim';
+      actionBox.appendChild(span);
+    } else {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-outline btn-sm';
+      btn.disabled = true;
+      btn.textContent = 'Di Luar Window';
+      actionBox.appendChild(btn);
+    }
+
+    card.appendChild(actionBox);
+    container.appendChild(card);
+  }
+}
+
+/**
+ * Handler ketika siswa memilih jadwal untuk diajukan
+ * @param {Object} jadwalObj
+ */
+function pilihJadwalPengajuan(jadwalObj) {
+  const hiddenInput = document.getElementById('pengajuan-id-jadwal');
+  const infoEl = document.getElementById('pengajuan-jadwal-selected-info');
+  const submitBtn = document.getElementById('btn-submit-pengajuan');
+
+  if (hiddenInput) hiddenInput.value = jadwalObj.id_jadwal;
+
+  if (infoEl) {
+    infoEl.innerHTML = '';
+    const strong = document.createElement('strong');
+    strong.textContent = jadwalObj.nama_mapel + ' (' + jadwalObj.jam_mulai + ' - ' + jadwalObj.jam_selesai + ')';
+    const sub = document.createElement('div');
+    sub.className = 'text-sm text-muted';
+    sub.textContent = 'Guru: ' + jadwalObj.nama_guru + ' | ' + jadwalObj.window_info;
+    infoEl.appendChild(strong);
+    infoEl.appendChild(sub);
+  }
+
+  if (submitBtn) submitBtn.disabled = false;
+
+  const cardForm = document.getElementById('card-form-pengajuan');
+  if (cardForm) cardForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/**
+ * Reset formulir pengajuan
+ */
+function resetFormPengajuan() {
+  const form = document.getElementById('form-pengajuan-siswa');
+  if (form) form.reset();
+
+  const hiddenInput = document.getElementById('pengajuan-id-jadwal');
+  if (hiddenInput) hiddenInput.value = '';
+
+  const infoEl = document.getElementById('pengajuan-jadwal-selected-info');
+  if (infoEl) {
+    infoEl.innerHTML = '<span class="text-muted text-sm">Silakan klik tombol <strong>"Pilih & Ajukan"</strong> pada salah satu kartu jadwal di atas yang sedang dalam rentang 15 menit pertama.</span>';
+  }
+
+  const submitBtn = document.getElementById('btn-submit-pengajuan');
+  if (submitBtn) submitBtn.disabled = true;
+
+  const counterEl = document.getElementById('pengajuan-alasan-counter');
+  if (counterEl) counterEl.textContent = '0/300';
+}
+
+/**
+ * Ganti jenis pengajuan (Sakit vs Izin)
+ * @param {'Sakit'|'Izin'} jenis
+ */
+function handleJenisPengajuanChange(jenis) {
+  const reqLabel = document.getElementById('pengajuan-file-required-label');
+  const helpEl = document.getElementById('pengajuan-jenis-help');
+  const fileInput = document.getElementById('pengajuan-file');
+
+  const isKK = currentSiswaData && currentSiswaData.siswa && currentSiswaData.siswa.kartu_kontrol;
+
+  if (jenis === 'Izin') {
+    if (reqLabel) reqLabel.textContent = '(Wajib: Surat orang tua bertanda tangan)';
+    if (helpEl) helpEl.textContent = 'Pengajuan izin tidak masuk wajib menyertakan surat izin dari orang tua bertanda tangan.';
+    if (fileInput) fileInput.required = true;
+  } else {
+    if (isKK) {
+      if (reqLabel) reqLabel.textContent = '(Kartu Kontrol: Bukti dapat dilampirkan langsung)';
+      if (helpEl) helpEl.textContent = 'Anda terdaftar sebagai pemegang kartu kontrol; berkas bukti dapat dilampirkan langsung saat pengajuan.';
+    } else {
+      if (reqLabel) reqLabel.textContent = '(Opsional saat pengajuan awal, bukti dokter menyusul)';
+      if (helpEl) helpEl.textContent = 'Siswa reguler mengirim pengajuan Sakit terlebih dahulu; bukti surat dokter diunggah kemudian saat tersedia.';
+    }
+    if (fileInput) fileInput.required = false;
+  }
+}
+
+/**
+ * Helper membaca nilai radio button
+ * @param {string} name
+ * @returns {string}
+ */
+function getRadioValue(name) {
+  const el = document.querySelector('input[name="' + name + '"]:checked');
+  return el ? el.value : '';
+}
+
+/**
+ * Kirim formulir pengajuan izin/sakit siswa
+ * @param {Event} e
+ */
+function handleKirimPengajuan(e) {
+  e.preventDefault();
+  const token = getStoredToken();
+  if (!token) return;
+
+  const idJadwal = (document.getElementById('pengajuan-id-jadwal').value || '').trim();
+  if (!idJadwal) {
+    showToast('Silakan pilih salah satu jadwal pelajaran terlebih dahulu.', 'error');
+    return;
+  }
+
+  const jenis = getRadioValue('siswa_jenis_pengajuan') || 'Sakit';
+  const alasan = (document.getElementById('pengajuan-alasan').value || '').trim();
+  if (!alasan) {
+    showToast('Alasan pengajuan wajib diisi.', 'error');
+    return;
+  }
+  if (alasan.length > 300) {
+    showToast('Alasan pengajuan maksimal 300 karakter.', 'error');
+    return;
+  }
+
+  const fileInput = document.getElementById('pengajuan-file');
+  const file = fileInput && fileInput.files && fileInput.files[0];
+
+  if (jenis === 'Izin' && !file) {
+    showToast('Pengajuan Izin wajib melampirkan berkas surat izin orang tua.', 'error');
+    return;
+  }
+
+  const submitBtn = document.getElementById('btn-submit-pengajuan');
+  const submitText = document.getElementById('btn-submit-text');
+  if (submitBtn) submitBtn.disabled = true;
+  if (submitText) submitText.textContent = 'Mengirim pengajuan...';
+
+  prepareFileInput(
+    file,
+    function (berkasObj) {
+      if (typeof google === 'undefined' || !google.script || !google.script.run) {
+        if (submitBtn) submitBtn.disabled = false;
+        if (submitText) submitText.textContent = 'Kirim Pengajuan';
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(function (res) {
+          if (submitBtn) submitBtn.disabled = false;
+          if (submitText) submitText.textContent = 'Kirim Pengajuan';
+          showToast(res.message || 'Pengajuan berhasil dikirim.', 'success');
+          resetFormPengajuan();
+          muatJadwalSiswaHariIni();
+          switchSiswaTab('riwayat');
+        })
+        .withFailureHandler(function (err) {
+          if (submitBtn) submitBtn.disabled = false;
+          if (submitText) submitText.textContent = 'Kirim Pengajuan';
+          showToast(err.message || 'Gagal mengirim pengajuan.', 'error');
+        })
+        .ajukanIzin(token, idJadwal, jenis, alasan, berkasObj);
+    },
+    function (errMsg) {
+      if (submitBtn) submitBtn.disabled = false;
+      if (submitText) submitText.textContent = 'Kirim Pengajuan';
+      showToast(errMsg, 'error');
+    }
+  );
+}
+
+/**
+ * Memuat riwayat 30 pengajuan terakhir milik siswa login
+ */
+function muatRiwayatPengajuanSaya() {
+  const token = getStoredToken();
+  if (!token) return;
+
+  const loadingEl = document.getElementById('siswa-riwayat-loading');
+  const emptyEl = document.getElementById('siswa-riwayat-empty');
+  const container = document.getElementById('siswa-riwayat-list');
+
+  if (loadingEl) loadingEl.style.display = 'block';
+  if (emptyEl) emptyEl.style.display = 'none';
+  if (container) container.innerHTML = '';
+
+  if (typeof google === 'undefined' || !google.script || !google.script.run) {
+    if (loadingEl) loadingEl.style.display = 'none';
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler(function (list) {
+      if (loadingEl) loadingEl.style.display = 'none';
+      if (!list || list.length === 0) {
+        if (emptyEl) emptyEl.style.display = 'block';
+        return;
+      }
+      renderRiwayatPengajuanList(list);
+    })
+    .withFailureHandler(function (err) {
+      if (loadingEl) loadingEl.style.display = 'none';
+      showToast(err.message || 'Gagal memuat riwayat pengajuan.', 'error');
+    })
+    .getPengajuanSaya(token);
+}
+
+/**
+ * Helper class badge berdasarkan status
+ * @param {string} status
+ * @returns {string}
+ */
+function getStatusBadgeClass(status) {
+  if (status === 'Menunggu bukti') return 'wait-doc';
+  if (status === 'Menunggu persetujuan') return 'wait-appr';
+  if (status === 'Disetujui') return 'approved';
+  if (status === 'Ditolak') return 'rejected';
+  return 'secondary';
+}
+
+/**
+ * Render daftar riwayat pengajuan siswa dengan aman (DOM & textContent)
+ * @param {Array<Object>} items
+ */
+function renderRiwayatPengajuanList(items) {
+  const container = document.getElementById('siswa-riwayat-list');
+  if (!container) return;
+  container.innerHTML = '';
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+
+    const card = document.createElement('div');
+    card.style.cssText = 'padding: var(--space-3); border: 1px solid var(--surface-border); border-radius: var(--radius-md); background: var(--surface);';
+
+    const headerRow = document.createElement('div');
+    headerRow.style.cssText = 'display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;';
+
+    const statusBadge = document.createElement('span');
+    statusBadge.className = 'badge badge-' + getStatusBadgeClass(item.status);
+    statusBadge.textContent = item.status;
+    headerRow.appendChild(statusBadge);
+
+    const tglEl = document.createElement('span');
+    tglEl.className = 'text-sm text-muted';
+    tglEl.textContent = item.tanggal;
+    headerRow.appendChild(tglEl);
+    card.appendChild(headerRow);
+
+    const titleEl = document.createElement('div');
+    titleEl.style.cssText = 'font-weight: 700; margin-bottom: 4px; font-size: var(--font-base);';
+    titleEl.textContent = item.jenis + ' \u2022 ' + item.nama_mapel + (item.jam_mulai ? ' (' + item.jam_mulai + ' - ' + item.jam_selesai + ')' : '');
+    card.appendChild(titleEl);
+
+    const alasanEl = document.createElement('p');
+    alasanEl.className = 'text-sm text-muted';
+    alasanEl.style.cssText = 'margin-bottom: 6px; white-space: pre-wrap;';
+    alasanEl.textContent = 'Alasan: ' + item.alasan;
+    card.appendChild(alasanEl);
+
+    if (item.catatan_guru) {
+      const catEl = document.createElement('div');
+      catEl.className = 'text-sm';
+      catEl.style.cssText = 'color: var(--text-muted); font-style: italic; margin-bottom: 6px;';
+      catEl.textContent = 'Catatan guru: ' + item.catatan_guru;
+      card.appendChild(catEl);
+    }
+
+    if (item.status === 'Menunggu bukti' && item.jenis === 'Sakit') {
+      const btnUnggah = document.createElement('button');
+      btnUnggah.type = 'button';
+      btnUnggah.className = 'btn btn-primary btn-sm';
+      btnUnggah.style.marginTop = 'var(--space-2)';
+      btnUnggah.textContent = 'Unggah Surat Dokter';
+      btnUnggah.onclick = (function (idIzin, mapel) {
+        return function () { bukaModalUnggahBukti(idIzin, mapel); };
+      })(item.id_izin, item.nama_mapel);
+      card.appendChild(btnUnggah);
+    }
+
+    container.appendChild(card);
+  }
+}
+
+/**
+ * Buka modal unggah bukti susulan
+ * @param {string} idIzin
+ * @param {string} mapel
+ */
+function bukaModalUnggahBukti(idIzin, mapel) {
+  const modal = document.getElementById('modal-unggah-bukti');
+  const inputId = document.getElementById('modal-bukti-id-izin');
+  const descEl = document.getElementById('modal-bukti-desc');
+  const fileInput = document.getElementById('modal-bukti-file');
+
+  if (inputId) inputId.value = idIzin;
+  if (descEl) descEl.textContent = 'Pengajuan Sakit: ' + mapel + '. Silakan unggah foto atau dokumen surat keterangan berobat dari dokter/klinik.';
+  if (fileInput) fileInput.value = '';
+
+  if (modal) {
+    modal.removeAttribute('hidden');
+    modal.classList.add('open');
+  }
+}
+
+/**
+ * Tutup modal unggah bukti susulan
+ */
+function tutupModalUnggahBukti() {
+  const modal = document.getElementById('modal-unggah-bukti');
+  if (modal) {
+    modal.classList.remove('open');
+    modal.setAttribute('hidden', '');
+  }
+}
+
+/**
+ * Handler submit unggah bukti susulan
+ * @param {Event} e
+ */
+function handleUnggahBuktiSusulan(e) {
+  e.preventDefault();
+  const token = getStoredToken();
+  if (!token) return;
+
+  const idIzin = (document.getElementById('modal-bukti-id-izin').value || '').trim();
+  const fileInput = document.getElementById('modal-bukti-file');
+  const file = fileInput && fileInput.files && fileInput.files[0];
+
+  if (!idIzin || !file) {
+    showToast('Silakan pilih berkas surat dokter yang akan diunggah.', 'error');
+    return;
+  }
+
+  const submitBtn = document.getElementById('btn-modal-unggah-submit');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Mengunggah...';
+  }
+
+  prepareFileInput(
+    file,
+    function (berkasObj) {
+      if (typeof google === 'undefined' || !google.script || !google.script.run) {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Unggah Sekarang'; }
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(function (res) {
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Unggah Sekarang'; }
+          showToast(res.message || 'Bukti berhasil diunggah.', 'success');
+          tutupModalUnggahBukti();
+          muatRiwayatPengajuanSaya();
+          muatJadwalSiswaHariIni();
+        })
+        .withFailureHandler(function (err) {
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Unggah Sekarang'; }
+          showToast(err.message || 'Gagal mengunggah bukti.', 'error');
+        })
+        .unggahBukti(token, idIzin, berkasObj);
+    },
+    function (errMsg) {
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Unggah Sekarang'; }
+      showToast(errMsg, 'error');
+    }
+  );
+}
+</script>
+

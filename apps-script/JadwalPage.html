@@ -1,0 +1,634 @@
+<!-- ====================================================================
+     PAGE SEMESTER & JADWAL (T04)
+     Admin mengelola semester (satu aktif) dan jadwal pelajaran.
+     ==================================================================== -->
+<section class="page" id="page-semester-jadwal" data-page="semester-jadwal" hidden>
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Semester & Jadwal</h2>
+      <p class="page-subtitle">Kelola semester aktif dan jadwal pelajaran per kelas, mapel, dan guru</p>
+    </div>
+    <div style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
+      <button type="button" class="btn btn-primary" id="btn-t04-add-semester" onclick="openSemesterFormModal('add')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        <span>Tambah Semester</span>
+      </button>
+      <button type="button" class="btn btn-primary" id="btn-t04-add-jadwal" onclick="openJadwalFormModal('add')" style="display: none;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        <span>Tambah Jadwal</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tab Semester / Jadwal -->
+  <div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-4); overflow-x: auto; padding-bottom: var(--space-1);">
+    <button type="button" class="btn btn-primary btn-sm" id="tab-t04-semester" onclick="switchJadwalTab('Semester')">Semester</button>
+    <button type="button" class="btn btn-secondary btn-sm" id="tab-t04-jadwal" onclick="switchJadwalTab('Jadwal')">Jadwal Pelajaran</button>
+  </div>
+
+  <!-- Panel Semester -->
+  <div class="card" id="panel-t04-semester">
+    <div class="card-body">
+      <div class="table-container">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width: 180px;">Tahun Ajaran</th>
+              <th style="width: 140px;">Semester</th>
+              <th style="width: 130px;">Status</th>
+              <th style="text-align: right;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="t04-semester-body" data-slot="table-body">
+            <tr>
+              <td colspan="4" style="text-align: center; padding: var(--space-6); color: var(--text-muted);">Memuat data semester...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="text-sm text-muted" id="t04-semester-count" style="margin-top: var(--space-3);">Menampilkan 0 semester</div>
+    </div>
+  </div>
+
+  <!-- Panel Jadwal -->
+  <div class="card" id="panel-t04-jadwal" hidden>
+    <div class="card-body">
+      <div class="form-row" style="display: flex; gap: var(--space-3); flex-wrap: wrap; margin-bottom: var(--space-4);">
+        <div class="form-group" style="min-width: 190px; flex: 1; margin-bottom: 0;">
+          <label class="form-label" for="t04-filter-semester">Semester</label>
+          <select class="form-select" id="t04-filter-semester" onchange="loadJadwalData()"></select>
+        </div>
+        <div class="form-group" style="min-width: 160px; flex: 1; margin-bottom: 0;">
+          <label class="form-label" for="t04-filter-kelas">Kelas</label>
+          <select class="form-select" id="t04-filter-kelas" onchange="loadJadwalData()">
+            <option value="">Semua Kelas</option>
+          </select>
+        </div>
+        <div class="form-group" style="min-width: 160px; flex: 1; margin-bottom: 0;">
+          <label class="form-label" for="t04-filter-guru">Guru</label>
+          <select class="form-select" id="t04-filter-guru" onchange="loadJadwalData()">
+            <option value="">Semua Guru</option>
+          </select>
+        </div>
+        <div style="display: flex; align-items: flex-end;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="loadJadwalData()" title="Muat Ulang Jadwal">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10" />
+              <polyline points="1 20 1 14 7 14" />
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width: 100px;">Hari</th>
+              <th style="width: 130px;">Jam</th>
+              <th>Kelas</th>
+              <th>Mata Pelajaran</th>
+              <th>Guru</th>
+              <th style="width: 170px;">Semester</th>
+              <th style="width: 140px; text-align: right;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="t04-jadwal-body" data-slot="table-body">
+            <tr>
+              <td colspan="7" style="text-align: center; padding: var(--space-6); color: var(--text-muted);">Memuat data jadwal...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="text-sm text-muted" id="t04-jadwal-count" style="margin-top: var(--space-3);">Menampilkan 0 jadwal</div>
+    </div>
+  </div>
+</section>
+
+<!-- Modal Form Semester -->
+<div class="modal-backdrop" id="modal-t04-semester" role="dialog" aria-modal="true" aria-labelledby="modal-t04-semester-title" hidden>
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3 class="card-title" id="modal-t04-semester-title">Form Semester</h3>
+      <button type="button" class="btn-close" onclick="closeModal('modal-t04-semester')" aria-label="Tutup">&times;</button>
+    </div>
+    <form id="form-t04-semester" onsubmit="event.preventDefault(); submitSemesterForm();">
+      <div class="modal-body">
+        <div id="t04-semester-alert" data-slot="alert-container"></div>
+        <div class="form-group">
+          <label class="form-label" for="t04-input-tahun">Tahun Ajaran</label>
+          <input type="text" class="form-control" id="t04-input-tahun" placeholder="2026/2027" pattern="\d{4}/\d{4}" required>
+          <div class="form-help">Dua tahun berurutan, contoh 2026/2027.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="t04-input-semester">Semester</label>
+          <select class="form-select" id="t04-input-semester" required>
+            <option value="Ganjil">Ganjil</option>
+            <option value="Genap">Genap</option>
+          </select>
+        </div>
+        <div class="alert alert-info" style="margin-bottom: 0;">
+          <span class="text-sm">Semester baru selalu tersimpan "Tidak aktif". Gunakan tombol Aktifkan untuk memilih semester berjalan.</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-t04-semester')">Batal</button>
+        <button type="submit" class="btn btn-primary" id="btn-t04-save-semester">Simpan Semester</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Form Jadwal -->
+<div class="modal-backdrop" id="modal-t04-jadwal" role="dialog" aria-modal="true" aria-labelledby="modal-t04-jadwal-title" hidden>
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3 class="card-title" id="modal-t04-jadwal-title">Form Jadwal</h3>
+      <button type="button" class="btn-close" onclick="closeModal('modal-t04-jadwal')" aria-label="Tutup">&times;</button>
+    </div>
+    <form id="form-t04-jadwal" onsubmit="event.preventDefault(); submitJadwalForm();">
+      <div class="modal-body">
+        <div id="t04-jadwal-alert" data-slot="alert-container"></div>
+        <div class="form-group">
+          <label class="form-label" for="t04-input-jadwal-semester">Semester</label>
+          <select class="form-select" id="t04-input-jadwal-semester" required></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="t04-input-jadwal-kelas">Kelas</label>
+          <select class="form-select" id="t04-input-jadwal-kelas" required></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="t04-input-jadwal-mapel">Mata Pelajaran</label>
+          <select class="form-select" id="t04-input-jadwal-mapel" required></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="t04-input-jadwal-guru">Guru Pengajar</label>
+          <select class="form-select" id="t04-input-jadwal-guru" required></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="t04-input-jadwal-hari">Hari</label>
+          <select class="form-select" id="t04-input-jadwal-hari" required></select>
+        </div>
+        <div class="form-row" style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
+          <div class="form-group" style="flex: 1; min-width: 140px;">
+            <label class="form-label" for="t04-input-jadwal-mulai">Jam Mulai</label>
+            <input type="time" class="form-control" id="t04-input-jadwal-mulai" required>
+          </div>
+          <div class="form-group" style="flex: 1; min-width: 140px;">
+            <label class="form-label" for="t04-input-jadwal-selesai">Jam Selesai</label>
+            <input type="time" class="form-control" id="t04-input-jadwal-selesai" required>
+          </div>
+        </div>
+        <div class="form-help">Jam selesai harus setelah jam mulai; guru dan kelas tidak boleh bentrok pada hari yang sama.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-t04-jadwal')">Batal</button>
+        <button type="submit" class="btn btn-primary" id="btn-t04-save-jadwal">Simpan Jadwal</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Konfirmasi Hapus -->
+<div class="modal-backdrop" id="modal-t04-delete" role="dialog" aria-modal="true" aria-labelledby="modal-t04-delete-title" hidden>
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3 class="card-title" id="modal-t04-delete-title">Konfirmasi Penghapusan</h3>
+      <button type="button" class="btn-close" onclick="closeModal('modal-t04-delete')" aria-label="Tutup">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p id="t04-delete-message" style="margin-bottom: var(--space-2);">Apakah Anda yakin ingin menghapus data ini?</p>
+      <div class="alert alert-danger" style="margin-bottom: 0;">
+        <span class="text-sm">Penghapusan ditolak server jika data masih dipakai (semester aktif atau sudah punya jadwal/presensi).</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="closeModal('modal-t04-delete')">Batal</button>
+      <button type="button" class="btn btn-danger" id="btn-t04-delete-action" onclick="executeT04Delete()">Hapus Sekarang</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/**
+ * Logika Antarmuka Semester & Jadwal (T04)
+ */
+let t04Tab = 'Semester';
+let t04SemesterCache = [];
+let t04JadwalCache = [];
+let t04JadwalExtra = { semesters: [], kelas: [], mapel: [], guru: [], hari: [], semesterAktif: '' };
+let t04SemesterMode = 'add';
+let t04EditingSemesterId = '';
+let t04JadwalMode = 'add';
+let t04EditingJadwalId = '';
+let t04PendingDelete = null;
+
+function t04HasRuntime() {
+  return typeof google !== 'undefined' && google.script && google.script.run;
+}
+
+function initSemesterJadwalPage() {
+  switchJadwalTab(t04Tab || 'Semester');
+}
+
+function switchJadwalTab(tab) {
+  t04Tab = tab === 'Jadwal' ? 'Jadwal' : 'Semester';
+
+  const isSemester = t04Tab === 'Semester';
+  document.getElementById('panel-t04-semester').hidden = !isSemester;
+  document.getElementById('panel-t04-jadwal').hidden = isSemester;
+  document.getElementById('btn-t04-add-semester').style.display = isSemester ? '' : 'none';
+  document.getElementById('btn-t04-add-jadwal').style.display = isSemester ? 'none' : '';
+
+  const tabSemester = document.getElementById('tab-t04-semester');
+  const tabJadwal = document.getElementById('tab-t04-jadwal');
+  tabSemester.className = 'btn btn-sm ' + (isSemester ? 'btn-primary' : 'btn-secondary');
+  tabJadwal.className = 'btn btn-sm ' + (isSemester ? 'btn-secondary' : 'btn-primary');
+
+  if (isSemester) loadSemesterData();
+  else loadJadwalData();
+}
+
+function loadSemesterData() {
+  const tbody = document.getElementById('t04-semester-body');
+  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:var(--space-6);color:var(--text-muted);">Memuat data semester...</td></tr>';
+
+  if (!t04HasRuntime()) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:var(--space-6);color:var(--text-muted);">Runtime Apps Script tidak terdeteksi.</td></tr>';
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler(function (res) {
+      t04SemesterCache = res.items || [];
+      renderSemesterTable();
+    })
+    .withFailureHandler(function (err) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:var(--space-6);color:var(--color-alpa);">' + escapeHtml(err.message || 'Gagal memuat semester') + '</td></tr>';
+      showToast('Gagal memuat semester: ' + (err.message || 'kesalahan server'), 'danger');
+    })
+    .listSemester(getStoredToken());
+}
+
+function renderSemesterTable() {
+  const tbody = document.getElementById('t04-semester-body');
+  const countEl = document.getElementById('t04-semester-count');
+  countEl.textContent = 'Menampilkan ' + t04SemesterCache.length + ' semester';
+
+  if (!t04SemesterCache.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:var(--space-6);color:var(--text-muted);">Belum ada semester. Tambahkan semester terlebih dahulu.</td></tr>';
+    return;
+  }
+
+  let html = '';
+  t04SemesterCache.forEach(function (s) {
+    const aktif = s.status === 'Aktif';
+    const badge = aktif ? '<span class="badge badge-hadir">Aktif</span>' : '<span class="badge">Tidak aktif</span>';
+    const tombolAktif = aktif
+      ? '<span class="text-sm text-muted">Sedang aktif</span>'
+      : '<button type="button" class="btn btn-success btn-sm" onclick="activateSemester(\'' + escapeHtml(s.id_semester) + '\')">Aktifkan</button>';
+    const tombolHapus = aktif
+      ? '<button type="button" class="btn btn-outline btn-sm" disabled title="Semester aktif tidak boleh dihapus">Hapus</button>'
+      : '<button type="button" class="btn btn-outline btn-sm" style="color: var(--color-alpa);" onclick="confirmDeleteSemester(\'' + escapeHtml(s.id_semester) + '\')">Hapus</button>';
+
+    html += '<tr>' +
+      '<td><strong>' + escapeHtml(s.tahun_ajaran) + '</strong></td>' +
+      '<td>' + escapeHtml(s.semester) + '</td>' +
+      '<td>' + badge + '</td>' +
+      '<td style="text-align:right;white-space:nowrap;">' +
+      tombolAktif + ' ' +
+      '<button type="button" class="btn btn-secondary btn-sm" onclick="openSemesterFormModal(\'edit\', \'' + escapeHtml(s.id_semester) + '\')">Edit</button> ' +
+      tombolHapus +
+      '</td></tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+function openSemesterFormModal(mode, id) {
+  t04SemesterMode = mode;
+  t04EditingSemesterId = id || '';
+  const titleEl = document.getElementById('modal-t04-semester-title');
+  const tahunEl = document.getElementById('t04-input-tahun');
+  const semEl = document.getElementById('t04-input-semester');
+  const alertEl = document.getElementById('t04-semester-alert');
+  const form = document.getElementById('form-t04-semester');
+
+  if (form) form.reset();
+  if (alertEl) alertEl.innerHTML = '';
+
+  if (mode === 'edit') {
+    const item = t04SemesterCache.filter(function (s) { return s.id_semester === id; })[0];
+    if (titleEl) titleEl.textContent = 'Edit Semester';
+    if (item) {
+      if (tahunEl) tahunEl.value = item.tahun_ajaran;
+      if (semEl) semEl.value = item.semester;
+    }
+  } else {
+    if (titleEl) titleEl.textContent = 'Tambah Semester';
+    if (semEl) semEl.value = 'Ganjil';
+  }
+
+  const modal = document.getElementById('modal-t04-semester');
+  modal.removeAttribute('hidden');
+  modal.classList.add('open');
+}
+
+function submitSemesterForm() {
+  const tahun = (document.getElementById('t04-input-tahun').value || '').trim();
+  const sem = document.getElementById('t04-input-semester').value;
+  const alertEl = document.getElementById('t04-semester-alert');
+  const btn = document.getElementById('btn-t04-save-semester');
+
+  if (!tahun || !sem) {
+    if (alertEl) alertEl.innerHTML = '<div class="alert alert-danger">Tahun ajaran dan semester wajib diisi.</div>';
+    return;
+  }
+
+  setBtnLoading(btn, true, 'Menyimpan...');
+  const payload = { tahun_ajaran: tahun, semester: sem };
+  if (t04SemesterMode === 'edit') payload.id_semester = t04EditingSemesterId;
+
+  google.script.run
+    .withSuccessHandler(function (res) {
+      setBtnLoading(btn, false, 'Simpan Semester');
+      closeModal('modal-t04-semester');
+      showToast(res.message || 'Semester berhasil disimpan', 'success');
+      loadSemesterData();
+    })
+    .withFailureHandler(function (err) {
+      setBtnLoading(btn, false, 'Simpan Semester');
+      if (alertEl) alertEl.innerHTML = '<div class="alert alert-danger">' + escapeHtml(err.message || 'Gagal menyimpan semester') + '</div>';
+    })
+    .saveSemester(getStoredToken(), payload, t04SemesterMode);
+}
+
+function activateSemester(id) {
+  const item = t04SemesterCache.filter(function (s) { return s.id_semester === id; })[0];
+  const label = item ? item.tahun_ajaran + ' ' + item.semester : id;
+  if (!confirm('Aktifkan semester ' + label + '? Semester lain otomatis menjadi Tidak aktif.')) return;
+
+  google.script.run
+    .withSuccessHandler(function (res) {
+      showToast(res.message || 'Semester diaktifkan', 'success');
+      loadSemesterData();
+    })
+    .withFailureHandler(function (err) {
+      showToast('Gagal mengaktifkan semester: ' + (err.message || 'kesalahan server'), 'danger');
+    })
+    .setSemesterAktif(getStoredToken(), id);
+}
+
+function loadJadwalData() {
+  const tbody = document.getElementById('t04-jadwal-body');
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:var(--space-6);color:var(--text-muted);">Memuat data jadwal...</td></tr>';
+
+  if (!t04HasRuntime()) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:var(--space-6);color:var(--text-muted);">Runtime Apps Script tidak terdeteksi.</td></tr>';
+    return;
+  }
+
+  const filter = {
+    id_semester: document.getElementById('t04-filter-semester').value,
+    id_kelas: document.getElementById('t04-filter-kelas').value,
+    nip_guru: document.getElementById('t04-filter-guru').value
+  };
+
+  google.script.run
+    .withSuccessHandler(function (res) {
+      t04JadwalCache = res.items || [];
+      t04JadwalExtra = res.extra || t04JadwalExtra;
+      t04PopulateJadwalSelects();
+      renderJadwalTable();
+    })
+    .withFailureHandler(function (err) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:var(--space-6);color:var(--color-alpa);">' + escapeHtml(err.message || 'Gagal memuat jadwal') + '</td></tr>';
+      showToast('Gagal memuat jadwal: ' + (err.message || 'kesalahan server'), 'danger');
+    })
+    .listJadwal(getStoredToken(), filter);
+}
+
+function t04PopulateJadwalSelects() {
+  const ex = t04JadwalExtra || {};
+  const semesters = ex.semesters || [];
+  const kelas = ex.kelas || [];
+  const mapel = ex.mapel || [];
+  const guru = ex.guru || [];
+  const hari = ex.hari || [];
+
+  const fSem = document.getElementById('t04-filter-semester');
+  const fKelas = document.getElementById('t04-filter-kelas');
+  const fGuru = document.getElementById('t04-filter-guru');
+
+  const curSem = fSem.value;
+  fSem.innerHTML = semesters.map(function (s) {
+    return '<option value="' + escapeHtml(s.id_semester) + '">' + escapeHtml(s.tahun_ajaran + ' - ' + s.semester) + '</option>';
+  }).join('');
+  fSem.value = curSem || ex.semesterAktif || (semesters[0] ? semesters[0].id_semester : '');
+
+  const curKelas = fKelas.value;
+  fKelas.innerHTML = '<option value="">Semua Kelas</option>' + kelas.map(function (k) {
+    return '<option value="' + escapeHtml(k.id_kelas) + '">' + escapeHtml(k.nama_kelas || k.id_kelas) + '</option>';
+  }).join('');
+  fKelas.value = curKelas;
+
+  const curGuru = fGuru.value;
+  fGuru.innerHTML = '<option value="">Semua Guru</option>' + guru.map(function (g) {
+    return '<option value="' + escapeHtml(g.nip) + '">' + escapeHtml(g.nama || g.nip) + '</option>';
+  }).join('');
+  fGuru.value = curGuru;
+
+  const iSem = document.getElementById('t04-input-jadwal-semester');
+  const iKelas = document.getElementById('t04-input-jadwal-kelas');
+  const iMapel = document.getElementById('t04-input-jadwal-mapel');
+  const iGuru = document.getElementById('t04-input-jadwal-guru');
+  const iHari = document.getElementById('t04-input-jadwal-hari');
+
+  iSem.innerHTML = semesters.map(function (s) {
+    return '<option value="' + escapeHtml(s.id_semester) + '">' + escapeHtml(s.tahun_ajaran + ' - ' + s.semester) + '</option>';
+  }).join('');
+  iKelas.innerHTML = '<option value="">Pilih Kelas</option>' + kelas.map(function (k) {
+    return '<option value="' + escapeHtml(k.id_kelas) + '">' + escapeHtml(k.nama_kelas || k.id_kelas) + '</option>';
+  }).join('');
+  iMapel.innerHTML = '<option value="">Pilih Mapel</option>' + mapel.map(function (m) {
+    return '<option value="' + escapeHtml(m.id_mapel) + '">' + escapeHtml(m.nama_mapel || m.id_mapel) + '</option>';
+  }).join('');
+  iGuru.innerHTML = '<option value="">Pilih Guru</option>' + guru.map(function (g) {
+    return '<option value="' + escapeHtml(g.nip) + '">' + escapeHtml(g.nama || g.nip) + '</option>';
+  }).join('');
+  iHari.innerHTML = hari.map(function (h) {
+    return '<option value="' + escapeHtml(h) + '">' + escapeHtml(h) + '</option>';
+  }).join('');
+}
+
+function renderJadwalTable() {
+  const tbody = document.getElementById('t04-jadwal-body');
+  const countEl = document.getElementById('t04-jadwal-count');
+  countEl.textContent = 'Menampilkan ' + t04JadwalCache.length + ' jadwal';
+
+  if (!t04JadwalCache.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:var(--space-6);color:var(--text-muted);">Tidak ada jadwal untuk filter ini.</td></tr>';
+    return;
+  }
+
+  const semMap = {};
+  (t04JadwalExtra.semesters || []).forEach(function (s) {
+    semMap[s.id_semester] = s.tahun_ajaran + ' ' + s.semester;
+  });
+
+  let html = '';
+  t04JadwalCache.forEach(function (j) {
+    html += '<tr>' +
+      '<td><strong>' + escapeHtml(j.hari) + '</strong></td>' +
+      '<td>' + escapeHtml(j.jam_mulai) + ' - ' + escapeHtml(j.jam_selesai) + '</td>' +
+      '<td>' + escapeHtml(j.nama_kelas) + '</td>' +
+      '<td>' + escapeHtml(j.nama_mapel) + '</td>' +
+      '<td>' + escapeHtml(j.nama_guru) + '</td>' +
+      '<td>' + escapeHtml(semMap[j.id_semester] || j.id_semester) + '</td>' +
+      '<td style="text-align:right;white-space:nowrap;">' +
+      '<button type="button" class="btn btn-secondary btn-sm" onclick="openJadwalFormModal(\'edit\', \'' + escapeHtml(j.id_jadwal) + '\')">Edit</button> ' +
+      '<button type="button" class="btn btn-outline btn-sm" style="color: var(--color-alpa);" onclick="confirmDeleteJadwal(\'' + escapeHtml(j.id_jadwal) + '\')">Hapus</button>' +
+      '</td></tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+function openJadwalFormModal(mode, id) {
+  const ex = t04JadwalExtra;
+  if (!ex.semesters || !ex.semesters.length) {
+    showToast('Data semester/kelas/mapel/guru belum termuat. Tunggu sebentar lalu coba lagi.', 'info');
+    return;
+  }
+  t04JadwalMode = mode;
+  t04EditingJadwalId = id || '';
+  const titleEl = document.getElementById('modal-t04-jadwal-title');
+  const alertEl = document.getElementById('t04-jadwal-alert');
+  const form = document.getElementById('form-t04-jadwal');
+
+  if (form) form.reset();
+  if (alertEl) alertEl.innerHTML = '';
+
+  if (mode === 'edit') {
+    const j = t04JadwalCache.filter(function (x) { return x.id_jadwal === id; })[0];
+    if (titleEl) titleEl.textContent = 'Edit Jadwal';
+    if (j) {
+      document.getElementById('t04-input-jadwal-semester').value = j.id_semester;
+      document.getElementById('t04-input-jadwal-kelas').value = j.id_kelas;
+      document.getElementById('t04-input-jadwal-mapel').value = j.id_mapel;
+      document.getElementById('t04-input-jadwal-guru').value = j.nip_guru;
+      document.getElementById('t04-input-jadwal-hari').value = j.hari;
+      document.getElementById('t04-input-jadwal-mulai').value = j.jam_mulai;
+      document.getElementById('t04-input-jadwal-selesai').value = j.jam_selesai;
+    }
+  } else {
+    if (titleEl) titleEl.textContent = 'Tambah Jadwal';
+    document.getElementById('t04-input-jadwal-semester').value = ex.semesterAktif ||
+      (ex.semesters[0] ? ex.semesters[0].id_semester : '');
+    document.getElementById('t04-input-jadwal-hari').value = (ex.hari && ex.hari[0]) || 'Senin';
+    document.getElementById('t04-input-jadwal-mulai').value = '07:00';
+    document.getElementById('t04-input-jadwal-selesai').value = '08:00';
+  }
+
+  const modal = document.getElementById('modal-t04-jadwal');
+  modal.removeAttribute('hidden');
+  modal.classList.add('open');
+}
+
+function submitJadwalForm() {
+  const payload = {
+    id_semester: document.getElementById('t04-input-jadwal-semester').value,
+    id_kelas: document.getElementById('t04-input-jadwal-kelas').value,
+    id_mapel: document.getElementById('t04-input-jadwal-mapel').value,
+    nip_guru: document.getElementById('t04-input-jadwal-guru').value,
+    hari: document.getElementById('t04-input-jadwal-hari').value,
+    jam_mulai: document.getElementById('t04-input-jadwal-mulai').value,
+    jam_selesai: document.getElementById('t04-input-jadwal-selesai').value
+  };
+  if (t04JadwalMode === 'edit') payload.id_jadwal = t04EditingJadwalId;
+
+  const alertEl = document.getElementById('t04-jadwal-alert');
+  const btn = document.getElementById('btn-t04-save-jadwal');
+
+  if (!payload.id_semester || !payload.id_kelas || !payload.id_mapel || !payload.nip_guru || !payload.hari || !payload.jam_mulai || !payload.jam_selesai) {
+    if (alertEl) alertEl.innerHTML = '<div class="alert alert-danger">Semua kolom jadwal wajib diisi.</div>';
+    return;
+  }
+
+  setBtnLoading(btn, true, 'Menyimpan...');
+  google.script.run
+    .withSuccessHandler(function (res) {
+      setBtnLoading(btn, false, 'Simpan Jadwal');
+      closeModal('modal-t04-jadwal');
+      showToast(res.message || 'Jadwal berhasil disimpan', 'success');
+      loadJadwalData();
+    })
+    .withFailureHandler(function (err) {
+      setBtnLoading(btn, false, 'Simpan Jadwal');
+      if (alertEl) alertEl.innerHTML = '<div class="alert alert-danger">' + escapeHtml(err.message || 'Gagal menyimpan jadwal') + '</div>';
+    })
+    .saveJadwal(getStoredToken(), payload, t04JadwalMode);
+}
+
+function confirmDeleteSemester(id) {
+  const item = t04SemesterCache.filter(function (s) { return s.id_semester === id; })[0];
+  t04PendingDelete = {
+    jenis: 'Semester',
+    key: id,
+    label: item ? item.tahun_ajaran + ' ' + item.semester : id
+  };
+  showT04DeleteModal();
+}
+
+function confirmDeleteJadwal(id) {
+  const item = t04JadwalCache.filter(function (j) { return j.id_jadwal === id; })[0];
+  t04PendingDelete = {
+    jenis: 'Jadwal',
+    key: id,
+    label: item ? item.hari + ' ' + item.jam_mulai + '-' + item.jam_selesai + ' (' + item.nama_kelas + ', ' + item.nama_mapel + ')' : id
+  };
+  showT04DeleteModal();
+}
+
+function showT04DeleteModal() {
+  const msgEl = document.getElementById('t04-delete-message');
+  if (msgEl && t04PendingDelete) {
+    msgEl.innerHTML = 'Hapus <strong>' + escapeHtml(t04PendingDelete.jenis) + ': ' + escapeHtml(t04PendingDelete.label) + '</strong>?';
+  }
+  const modal = document.getElementById('modal-t04-delete');
+  modal.removeAttribute('hidden');
+  modal.classList.add('open');
+}
+
+function executeT04Delete() {
+  if (!t04PendingDelete) return;
+  const token = getStoredToken();
+  const btn = document.getElementById('btn-t04-delete-action');
+  const pending = t04PendingDelete;
+  setBtnLoading(btn, true, 'Menghapus...');
+
+  const runner = google.script.run
+    .withSuccessHandler(function (res) {
+      setBtnLoading(btn, false, 'Hapus Sekarang');
+      closeModal('modal-t04-delete');
+      showToast(res.message || 'Data berhasil dihapus', 'success');
+      t04PendingDelete = null;
+      if (pending.jenis === 'Semester') loadSemesterData();
+      else loadJadwalData();
+    })
+    .withFailureHandler(function (err) {
+      setBtnLoading(btn, false, 'Hapus Sekarang');
+      closeModal('modal-t04-delete');
+      showToast('Gagal menghapus: ' + (err.message || 'kesalahan server'), 'danger');
+      t04PendingDelete = null;
+    });
+
+  if (pending.jenis === 'Semester') runner.deleteSemester(token, pending.key);
+  else runner.deleteJadwal(token, pending.key);
+}
+</script>

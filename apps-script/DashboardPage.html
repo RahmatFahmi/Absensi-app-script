@@ -1,0 +1,464 @@
+<!-- ==================================================================
+     HALAMAN DASHBOARD ADMIN / GURU / SISWA (T10)
+     ================================================================== -->
+<section class="page" id="page-dashboard-admin" data-page="dashboard-admin" hidden>
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Dashboard Admin</h2>
+      <p class="page-subtitle">Ringkasan data induk sekolah dan aktivitas presensi hari ini</p>
+    </div>
+    <div>
+      <span class="badge badge-belum" id="dash-admin-semester">Memuat...</span>
+    </div>
+  </div>
+
+  <div id="dash-admin-alert" class="alert alert-warning" style="display: none;" role="alert"></div>
+  <div id="dash-admin-loading" style="display: none; text-align: center; padding: var(--space-4);">
+    <div class="spinner" style="margin: 0 auto var(--space-2);"></div>
+    <div class="text-muted" style="font-size: var(--font-sm);">Memuat dashboard...</div>
+  </div>
+
+  <div class="grid grid-cols-4" style="margin-bottom: var(--space-6);">
+    <div class="metric-card">
+      <div class="metric-icon-box" style="background: var(--primary-subtle); color: var(--primary);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+      </div>
+      <div class="metric-info">
+        <div class="metric-label">Total Siswa</div>
+        <div class="metric-value" data-slot="metric-siswa" id="dash-admin-siswa">0</div>
+        <div class="metric-sub">Terdaftar di seluruh kelas</div>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-icon-box" style="background: var(--bg-izin); color: var(--color-izin);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+      </div>
+      <div class="metric-info">
+        <div class="metric-label">Total Guru</div>
+        <div class="metric-value" data-slot="metric-guru" id="dash-admin-guru">0</div>
+        <div class="metric-sub">Pengajar terdaftar</div>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-icon-box" style="background: var(--bg-wait-doc); color: var(--color-wait-doc);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+        </svg>
+      </div>
+      <div class="metric-info">
+        <div class="metric-label">Total Kelas</div>
+        <div class="metric-value" data-slot="metric-kelas" id="dash-admin-kelas">0</div>
+        <div class="metric-sub">Kelas terdaftar</div>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-icon-box" style="background: var(--bg-hadir); color: var(--color-hadir);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+          <polyline points="22 4 12 14.01 9 11.01" />
+        </svg>
+      </div>
+      <div class="metric-info">
+        <div class="metric-label">Kehadiran Hari Ini</div>
+        <div class="metric-value" data-slot="metric-presensi-pct" id="dash-admin-persen">-</div>
+        <div class="metric-sub">Dari presensi yang sudah diisi</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Ringkasan Status Presensi Hari Ini</h3>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="navigateTo('rekap-presensi')">Lihat Rekap</button>
+    </div>
+    <div class="card-body">
+      <div class="grid grid-cols-4">
+        <div style="padding: var(--space-3); border-radius: var(--radius-md); background: var(--bg-hadir); border: 1px solid var(--border-hadir);">
+          <div style="font-size: var(--font-xs); color: var(--color-hadir); font-weight: 700;">HADIR</div>
+          <div style="font-size: var(--font-2xl); font-weight: 800; color: var(--color-hadir);" id="dash-admin-hadir">0</div>
+        </div>
+        <div style="padding: var(--space-3); border-radius: var(--radius-md); background: var(--bg-izin); border: 1px solid var(--border-izin);">
+          <div style="font-size: var(--font-xs); color: var(--color-izin); font-weight: 700;">IZIN</div>
+          <div style="font-size: var(--font-2xl); font-weight: 800; color: var(--color-izin);" id="dash-admin-izin">0</div>
+        </div>
+        <div style="padding: var(--space-3); border-radius: var(--radius-md); background: var(--bg-sakit); border: 1px solid var(--border-sakit);">
+          <div style="font-size: var(--font-xs); color: var(--color-sakit); font-weight: 700;">SAKIT</div>
+          <div style="font-size: var(--font-2xl); font-weight: 800; color: var(--color-sakit);" id="dash-admin-sakit">0</div>
+        </div>
+        <div style="padding: var(--space-3); border-radius: var(--radius-md); background: var(--bg-alpa); border: 1px solid var(--border-alpa);">
+          <div style="font-size: var(--font-xs); color: var(--color-alpa); font-weight: 700;">ALPA</div>
+          <div style="font-size: var(--font-2xl); font-weight: 800; color: var(--color-alpa);" id="dash-admin-alpa">0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================================================================
+     DASHBOARD GURU
+     ================================================================== -->
+<section class="page" id="page-dashboard-guru" data-page="dashboard-guru" hidden>
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Dashboard Guru</h2>
+      <p class="page-subtitle" id="dash-guru-subtitle">Memuat jadwal hari ini...</p>
+    </div>
+    <div>
+      <button type="button" class="btn btn-primary" onclick="navigateTo('jadwal-guru')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+        Jadwal & Presensi
+      </button>
+    </div>
+  </div>
+
+  <div id="dash-guru-loading" style="display: none; text-align: center; padding: var(--space-4);">
+    <div class="spinner" style="margin: 0 auto var(--space-2);"></div>
+    <div class="text-muted" style="font-size: var(--font-sm);">Memuat dashboard...</div>
+  </div>
+
+  <div class="grid grid-cols-3" style="margin-bottom: var(--space-6);">
+    <div class="metric-card">
+      <div class="metric-icon-box" style="background: var(--primary-subtle); color: var(--primary);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+      </div>
+      <div class="metric-info">
+        <div class="metric-label">Jadwal Hari Ini</div>
+        <div class="metric-value" data-slot="metric-jadwal" id="dash-guru-count">0 Sesi</div>
+        <div class="metric-sub">Sesuai jadwal mengajar Anda</div>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-icon-box" style="background: var(--bg-sakit); color: var(--color-sakit);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+      </div>
+      <div class="metric-info">
+        <div class="metric-label">Presensi Belum Diisi</div>
+        <div class="metric-value" data-slot="metric-belum-diisi" id="dash-guru-belum">0</div>
+        <div class="metric-sub">Sesi yang perlu diisi</div>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-icon-box" style="background: var(--bg-wait-appr); color: var(--color-wait-appr);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+        </svg>
+      </div>
+      <div class="metric-info">
+        <div class="metric-label">Pengajuan Menunggu</div>
+        <div class="metric-value" data-slot="metric-pengajuan" id="dash-guru-pengajuan">0</div>
+        <div class="metric-sub">Menunggu persetujuan Anda</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Agenda Mengajar Hari Ini</h3>
+      <button type="button" class="btn btn-outline btn-sm" onclick="navigateTo('persetujuan-guru')">Cek Izin Siswa</button>
+    </div>
+    <div class="card-body">
+      <div class="grid grid-cols-3" id="dash-guru-jadwal-list"></div>
+      <div id="dash-guru-empty" class="empty-state" style="display: none;">
+        <p class="text-muted">Tidak ada jadwal mengajar hari ini.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================================================================
+     DASHBOARD SISWA
+     ================================================================== -->
+<section class="page" id="page-dashboard-siswa" data-page="dashboard-siswa" hidden>
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Dashboard Siswa</h2>
+      <p class="page-subtitle" id="dash-siswa-subtitle">Memuat ringkasan kehadiran...</p>
+    </div>
+    <div>
+      <button type="button" class="btn btn-primary" onclick="navigateToSiswaView('ajukan')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        Ajukan Sakit / Izin
+      </button>
+    </div>
+  </div>
+
+  <div id="dash-siswa-loading" style="display: none; text-align: center; padding: var(--space-4);">
+    <div class="spinner" style="margin: 0 auto var(--space-2);"></div>
+    <div class="text-muted" style="font-size: var(--font-sm);">Memuat dashboard...</div>
+  </div>
+
+  <div class="grid grid-cols-4" style="margin-bottom: var(--space-6);">
+    <div class="metric-card">
+      <div class="metric-icon-box" style="background: var(--bg-hadir); color: var(--color-hadir);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+          <polyline points="22 4 12 14.01 9 11.01" />
+        </svg>
+      </div>
+      <div class="metric-info">
+        <div class="metric-label">Kehadiran Semester Ini</div>
+        <div class="metric-value" data-slot="metric-persen-hadir" id="dash-siswa-persen">-</div>
+        <div class="metric-sub" id="dash-siswa-hadir-sub">0 dari 0 pertemuan</div>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-icon-box" style="background: var(--bg-izin); color: var(--color-izin);">
+        <span style="font-weight: 800; font-size: var(--font-lg);">I</span>
+      </div>
+      <div class="metric-info">
+        <div class="metric-label">Izin</div>
+        <div class="metric-value" id="dash-siswa-izin">0</div>
+        <div class="metric-sub">Pertemuan tercatat</div>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-icon-box" style="background: var(--bg-sakit); color: var(--color-sakit);">
+        <span style="font-weight: 800; font-size: var(--font-lg);">S</span>
+      </div>
+      <div class="metric-info">
+        <div class="metric-label">Sakit</div>
+        <div class="metric-value" id="dash-siswa-sakit">0</div>
+        <div class="metric-sub">Pertemuan tercatat</div>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-icon-box" style="background: var(--bg-alpa); color: var(--color-alpa);">
+        <span style="font-weight: 800; font-size: var(--font-lg);">A</span>
+      </div>
+      <div class="metric-info">
+        <div class="metric-label">Alpa</div>
+        <div class="metric-value" id="dash-siswa-alpa">0</div>
+        <div class="metric-sub">Pertemuan tercatat</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Status Pengajuan Terakhir</h3>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="navigateTo('pengajuan-saya')">Riwayat Semua Pengajuan</button>
+    </div>
+    <div class="card-body">
+      <div id="dash-siswa-pengajuan" style="display: none;"></div>
+      <div id="dash-siswa-pengajuan-empty" class="empty-state" style="display: none;">
+        <p class="text-muted">Belum ada pengajuan izin atau sakit.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+/**
+ * Logika Klien Dashboard per Role (T10)
+ * Satu panggilan server per dashboard.
+ */
+
+function initDashboardPage(pageId) {
+  const token = getStoredToken();
+  if (!token) return;
+  if (typeof google === 'undefined' || !google.script || !google.script.run) return;
+
+  if (pageId === 'dashboard-admin') muatDashboardAdmin(token);
+  else if (pageId === 'dashboard-guru') muatDashboardGuru(token);
+  else if (pageId === 'dashboard-siswa') muatDashboardSiswa(token);
+}
+
+function muatDashboardAdmin(token) {
+  setDashboardLoading_('dash-admin', true);
+  google.script.run
+    .withSuccessHandler(function (data) {
+      setDashboardLoading_('dash-admin', false);
+      renderDashboardAdmin(data || {});
+    })
+    .withFailureHandler(function (err) {
+      setDashboardLoading_('dash-admin', false);
+      showToast(err && err.message ? err.message : 'Gagal memuat dashboard.', 'error');
+    })
+    .getDashboardAdmin(token);
+}
+
+function muatDashboardGuru(token) {
+  setDashboardLoading_('dash-guru', true);
+  google.script.run
+    .withSuccessHandler(function (data) {
+      setDashboardLoading_('dash-guru', false);
+      renderDashboardGuru(data || {});
+    })
+    .withFailureHandler(function (err) {
+      setDashboardLoading_('dash-guru', false);
+      showToast(err && err.message ? err.message : 'Gagal memuat dashboard.', 'error');
+    })
+    .getDashboardGuru(token);
+}
+
+function muatDashboardSiswa(token) {
+  setDashboardLoading_('dash-siswa', true);
+  google.script.run
+    .withSuccessHandler(function (data) {
+      setDashboardLoading_('dash-siswa', false);
+      renderDashboardSiswa(data || {});
+    })
+    .withFailureHandler(function (err) {
+      setDashboardLoading_('dash-siswa', false);
+      showToast(err && err.message ? err.message : 'Gagal memuat dashboard.', 'error');
+    })
+    .getDashboardSiswa(token);
+}
+
+function setDashboardLoading_(prefix, isLoading) {
+  const el = document.getElementById(prefix + '-loading');
+  if (el) el.style.display = isLoading ? 'block' : 'none';
+}
+
+function setDashboardTeks_(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = String(value === null || value === undefined ? '' : value);
+}
+
+function renderDashboardAdmin(d) {
+  const p = d.presensi_hari_ini || {};
+  setDashboardTeks_('dash-admin-siswa', d.total_siswa || 0);
+  setDashboardTeks_('dash-admin-guru', d.total_guru || 0);
+  setDashboardTeks_('dash-admin-kelas', d.total_kelas || 0);
+  setDashboardTeks_('dash-admin-persen', p.persen || '-');
+  setDashboardTeks_('dash-admin-hadir', p.hadir || 0);
+  setDashboardTeks_('dash-admin-izin', p.izin || 0);
+  setDashboardTeks_('dash-admin-sakit', p.sakit || 0);
+  setDashboardTeks_('dash-admin-alpa', p.alpa || 0);
+
+  const semEl = document.getElementById('dash-admin-semester');
+  if (semEl) {
+    semEl.textContent = d.semester
+      ? (d.semester.tahun_ajaran || '') + ' ' + (d.semester.semester || '') + ' (Aktif)'
+      : 'Belum ada semester aktif';
+    semEl.className = d.semester ? 'badge badge-hadir' : 'badge badge-belum';
+  }
+
+  const alertEl = document.getElementById('dash-admin-alert');
+  if (alertEl) {
+    alertEl.style.display = d.semester ? 'none' : 'flex';
+    alertEl.textContent = d.semester ? '' : 'Belum ada semester aktif. Presensi hari ini belum dapat dihitung.';
+  }
+}
+
+function renderDashboardGuru(d) {
+  setDashboardTeks_('dash-guru-subtitle', d.hari ? d.hari + ', ' + d.tanggal : (d.tanggal || ''));
+
+  const daftar = d.jadwal || [];
+  setDashboardTeks_('dash-guru-count', daftar.length + ' Sesi');
+  setDashboardTeks_('dash-guru-belum', d.jumlah_belum_diisi || 0);
+  setDashboardTeks_('dash-guru-pengajuan', d.pengajuan_menunggu || 0);
+
+  const listEl = document.getElementById('dash-guru-jadwal-list');
+  const emptyEl = document.getElementById('dash-guru-empty');
+  if (!listEl || !emptyEl) return;
+
+  listEl.innerHTML = '';
+  if (!d.semester || daftar.length === 0) {
+    listEl.style.display = 'none';
+    emptyEl.style.display = 'block';
+    emptyEl.querySelector('p').textContent = d.semester
+      ? 'Tidak ada jadwal mengajar hari ini.'
+      : 'Belum ada semester aktif. Dashboard akan terisi setelah semester diaktifkan.';
+    return;
+  }
+
+  listEl.style.display = 'grid';
+  emptyEl.style.display = 'none';
+  listEl.innerHTML = daftar.map(function (j) {
+    const sudah = j.status_presensi === 'Sudah diisi';
+    return '<div style="border: 1px solid var(--surface-border); border-radius: var(--radius-md); padding: var(--space-4);">' +
+      '<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-2); gap: var(--space-2);">' +
+      '<span class="badge ' + (sudah ? 'badge-sudah' : 'badge-belum') + '"><span class="badge-dot"></span> ' + escapeHtml(j.status_presensi) + '</span>' +
+      '<span style="font-weight: 700; color: var(--text-muted); font-size: var(--font-sm);">' + escapeHtml(j.jam_mulai) + ' - ' + escapeHtml(j.jam_selesai) + '</span>' +
+      '</div>' +
+      '<h4 style="font-size: var(--font-base); font-weight: 700; margin-bottom: 4px;">' + escapeHtml(j.nama_mapel) + '</h4>' +
+      '<p style="font-size: var(--font-sm); color: var(--text-muted); margin-bottom: var(--space-3);">Kelas ' + escapeHtml(j.nama_kelas) + '</p>' +
+      '<button type="button" class="btn ' + (sudah ? 'btn-secondary' : 'btn-primary') + ' btn-sm btn-block" onclick="navigateTo(\'jadwal-guru\')">' +
+      (sudah ? 'Edit Presensi' : 'Isi Presensi') +
+      '</button></div>';
+  }).join('');
+}
+
+function renderDashboardSiswa(d) {
+  const r = d.ringkasan || {};
+  setDashboardTeks_('dash-siswa-persen', r.persen || '-');
+  setDashboardTeks_('dash-siswa-hadir-sub', (r.hadir || 0) + ' dari ' + (r.total || 0) + ' pertemuan');
+  setDashboardTeks_('dash-siswa-izin', r.izin || 0);
+  setDashboardTeks_('dash-siswa-sakit', r.sakit || 0);
+  setDashboardTeks_('dash-siswa-alpa', r.alpa || 0);
+
+  if (d.siswa) {
+    setDashboardTeks_('dash-siswa-subtitle',
+      d.siswa.nama + ' • NIS: ' + d.siswa.nis + (d.siswa.nama_kelas ? ' • Kelas ' + d.siswa.nama_kelas : ''));
+  } else if (currentSession && currentSession.user) {
+    setDashboardTeks_('dash-siswa-subtitle', 'NIS: ' + (currentSession.user.ref_id || currentSession.user.username));
+  }
+
+  const boxEl = document.getElementById('dash-siswa-pengajuan');
+  const emptyEl = document.getElementById('dash-siswa-pengajuan-empty');
+  if (!boxEl || !emptyEl) return;
+
+  const p = d.pengajuan_terakhir;
+  if (!p) {
+    boxEl.style.display = 'none';
+    boxEl.innerHTML = '';
+    emptyEl.style.display = 'block';
+    emptyEl.querySelector('p').textContent = d.semester
+      ? 'Belum ada pengajuan izin atau sakit.'
+      : 'Belum ada semester aktif. Riwayat pengajuan tetap dapat dilihat di menu Pengajuan Saya.';
+    return;
+  }
+
+  emptyEl.style.display = 'none';
+  boxEl.style.display = 'block';
+  boxEl.innerHTML = '<div style="padding: var(--space-4); border: 1px solid var(--surface-border); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3);">' +
+    '<div>' +
+    '<div style="font-weight: 700; font-size: var(--font-base);">' + escapeHtml(p.jenis) + '</div>' +
+    '<div style="font-size: var(--font-sm); color: var(--text-muted);">Tanggal: ' + escapeHtml(p.tanggal) +
+    (p.alasan ? ' • Alasan: ' + escapeHtml(p.alasan) : '') + '</div>' +
+    (p.catatan_guru ? '<div style="font-size: var(--font-sm); color: var(--text-muted);">Catatan guru: ' + escapeHtml(p.catatan_guru) + '</div>' : '') +
+    '</div>' +
+    '<span class="badge ' + badgeStatusPengajuan_(p.status) + '"><span class="badge-dot"></span> ' + escapeHtml(p.status) + '</span>' +
+    '</div>';
+}
+
+function badgeStatusPengajuan_(status) {
+  if (status === 'Disetujui') return 'badge-approved';
+  if (status === 'Ditolak') return 'badge-rejected';
+  if (status === 'Menunggu bukti') return 'badge-wait-doc';
+  return 'badge-wait-appr';
+}
+</script>
